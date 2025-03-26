@@ -9,13 +9,15 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import JobSearch from "./pages/JobSearch";
 import JobPost from "./pages/JobPost";
-import JobSeekerDashboard from "./pages/JobSeekerDashboard";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import Auth from "./pages/Auth";
+import CategoryForecast from "./pages/CategoryForecast";
 import SetupProfile from "./pages/SetupProfile";
 import CandidateProfile from "./pages/CandidateProfile";
+import InterviewStatsChart from "./pages/InterviewStatsChart";
+import FilterSidebar from "./pages/FilterSidebar";
 import NotFound from "./pages/NotFound";
-import ForecastChart from "./pages/ForecastChart"; // Added Forecast Chart Page
+import ForecastChart from "./pages/ForecastChart"; 
 
 // Create Query Client for React Query
 const queryClient = new QueryClient();
@@ -34,8 +36,10 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/jobs" element={<JobSearch />} />
             <Route path="/post-job" element={<JobPost />} />
-            <Route path="/job-seeker-dashboard" element={<JobSeekerDashboard />} />
+            <Route path="/interview-stats-chart" element={<InterviewStatsChart />} />
+            <Route path="/category-forecast" element={<CategoryForecast />} />
             <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
+            <Route path="/filter-sidebar" element={<FilterSidebar />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/setup-profile" element={<SetupProfile />} />
             <Route path="/candidate-profile" element={<CandidateProfile />} />

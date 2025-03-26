@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import InterviewStatsChart from "./InterviewStatsChart"; // import the InterviewStatsChart
 
 const ForecastChart = () => {
   const [categories, setCategories] = useState([]);
@@ -69,6 +70,9 @@ const ForecastChart = () => {
       ) : (
         selectedCategory && <p>No forecast data available</p>
       )}
+
+      {/* Interview Stats Chart (Pie chart) */}
+      <InterviewStatsChart jobs={[]} /> {/* Pass job data if available */}
     </div>
   );
 };
