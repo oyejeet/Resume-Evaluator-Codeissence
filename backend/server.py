@@ -10,6 +10,10 @@ CORS(app)  # Allow frontend to access backend
 with open('/Users/ishamadlani/Desktop/hi/sarima_predictions.pkl', 'rb') as file:
     sarima_data = pickle.load(file)
 
+# Load the DataFrame from the pickle file
+with open('/Users/ishamadlani/Desktop/career-craft/backend/data/df_filtered.pkl', 'rb') as file:
+    df = pickle.load(file)
+
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
     """Returns a list of available job categories."""
@@ -29,6 +33,16 @@ def get_forecast(category):
         return jsonify(response)
     
     return jsonify({"error": "Invalid forecast data"}), 500
+
+@app.route('/api/data/<category>', methods=['GET'])
+def get_data(category):
+    """Returns the DataFrame data for a specific category from the pickle file."""
+    if category not in df['category'].values:
+        return jsonify({"error": "Category not found in additional data"}), 404
+    
+    category_data = df[df['category'] == category]
+    response = category_data.to_dict(orient="records")
+    return jsonify(response)
 
 if __name__ == '__main__':
     app.run(debug=True)
