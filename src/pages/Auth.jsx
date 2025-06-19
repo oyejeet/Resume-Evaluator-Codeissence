@@ -9,32 +9,36 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
-  const { signUp, signIn, isAuthenticated, isLoading } = useAuth();
+  const { signUp, signIn, isAuthenticated, isLoading, isRecruiter, setUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("signin");
-
+  
   // Sign In state
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
   const [signinLoading, setSigninLoading] = useState(false);
-
+  
   // Sign Up state
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [isRecruiterSignup, setIsRecruiterSignup] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated based on user role
   if (isAuthenticated && !isLoading) {
+    console.log("User is authenticated, isRecruiter:", isRecruiter);
     return <Navigate to="/" />;
   }
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-
+    
     if (!signinEmail || !signinPassword) {
       toast({
         title: "Error",
@@ -43,11 +47,33 @@ const Auth = () => {
       });
       return;
     }
-
+    
     try {
       setSigninLoading(true);
-      await signIn(signinEmail, signinPassword);
-      navigate("/");
+      const user = await signIn(signinEmail, signinPassword);
+      // After sign in, check if profile exists
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      if (userId) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        if (profileError || !profile) {
+          // Insert profile if not exists
+          const accountType = localStorage.getItem('accountType');
+          const isRecruiter = accountType === 'recruiter';
+          console.log('[DEBUG] Inserting profile after login with is_recruiter:', isRecruiter);
+          await supabase.from('profiles').insert([
+            { id: userId, is_recruiter: isRecruiter }
+          ]);
+          localStorage.removeItem('accountType');
+        } else {
+          console.log('[DEBUG] Profile already exists after login:', profile);
+        }
+      }
+      // No need to navigate manually - the redirect in render method will handle it
     } catch (error) {
       console.error("Error signing in:", error);
     } finally {
@@ -57,7 +83,7 @@ const Auth = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-
+    
     if (!signupEmail || !signupPassword || !signupConfirmPassword) {
       toast({
         title: "Error",
@@ -66,7 +92,7 @@ const Auth = () => {
       });
       return;
     }
-
+    
     if (signupPassword !== signupConfirmPassword) {
       toast({
         title: "Error",
@@ -75,13 +101,63 @@ const Auth = () => {
       });
       return;
     }
-
+    
     try {
       setSignupLoading(true);
       await signUp(signupEmail, signupPassword);
-      setActiveTab("signin");
+
+      // Wait for session to be available
+      let sessionData = null;
+      for (let i = 0; i < 10; i++) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          sessionData = data;
+          break;
+        }
+        await new Promise(res => setTimeout(res, 300));
+      }
+
+      if (!sessionData || !sessionData.session?.user) {
+        console.error("[DEBUG] No session found after signup, cannot insert profile");
+        toast({
+          title: "Error",
+          description: "Could not complete signup. Please try again.",
+          variant: "destructive",
+        });
+        setSignupLoading(false);
+        return;
+      }
+
+      // Upsert profile with correct is_recruiter value
+      console.log("UPSERTING PROFILE with is_recruiter:", isRecruiterSignup, typeof isRecruiterSignup);
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert([
+          {
+            id: sessionData.session.user.id,
+            is_recruiter: !!isRecruiterSignup
+          }
+        ])
+        .select();
+      if (error) {
+        console.error('Error upserting profile:', error);
+        toast({
+          title: "Error",
+          description: "Could not create profile. Please try again.",
+          variant: "destructive",
+        });
+        setSignupLoading(false);
+        return;
+      }
+
+      // Redirect based on account type
+      window.location.href = isRecruiterSignup ? "/recruiter-dashboard" : "/job-seeker-dashboard";
+      toast({
+        title: "Account created",
+        description: "Please proceed to set up your profile",
+      });
     } catch (error) {
-      console.error("Error signing up:", error);
+      console.error("[DEBUG] Error signing up:", error);
     } finally {
       setSignupLoading(false);
     }
@@ -90,22 +166,22 @@ const Auth = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-
+      
       <main className="flex-grow pt-24 pb-16 flex items-center justify-center">
         <div className="w-full max-w-md px-4">
           <Card className="w-full">
             <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center">Welcome to FreeFlowJobs</CardTitle>
+              <CardTitle className="text-2xl font-bold text-center">Welcome to CareerCraft</CardTitle>
               <CardDescription className="text-center">Sign in to your account or create a new one</CardDescription>
             </CardHeader>
-
+            
             <CardContent>
               <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="signin">Sign In</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
                 </TabsList>
-
+                
                 <TabsContent value="signin">
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-2">
@@ -119,7 +195,7 @@ const Auth = () => {
                         required
                       />
                     </div>
-
+                    
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="signin-password">Password</Label>
@@ -136,13 +212,13 @@ const Auth = () => {
                         required
                       />
                     </div>
-
+                    
                     <Button type="submit" className="w-full" disabled={signinLoading}>
                       {signinLoading ? "Signing in..." : "Sign In"}
                     </Button>
                   </form>
                 </TabsContent>
-
+                
                 <TabsContent value="signup">
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div className="space-y-2">
@@ -156,7 +232,7 @@ const Auth = () => {
                         required
                       />
                     </div>
-
+                    
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>
                       <Input
@@ -168,7 +244,7 @@ const Auth = () => {
                         required
                       />
                     </div>
-
+                    
                     <div className="space-y-2">
                       <Label htmlFor="signup-confirm-password">Confirm Password</Label>
                       <Input
@@ -180,7 +256,29 @@ const Auth = () => {
                         required
                       />
                     </div>
-
+                    
+                    <div className="py-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="account-type" className="text-sm font-medium">Account Type</Label>
+                        <div className="flex items-center space-x-2">
+                          <span className={!isRecruiterSignup ? "text-sm font-semibold" : "text-sm text-muted-foreground"}>
+                            Job Seeker
+                          </span>
+                          <Switch
+                            id="account-type"
+                            checked={isRecruiterSignup}
+                            onCheckedChange={(checked) => {
+                              console.log("[LOG] Switch toggled, value:", checked, typeof checked);
+                              setIsRecruiterSignup(checked);
+                            }}
+                          />
+                          <span className={isRecruiterSignup ? "text-sm font-semibold" : "text-sm text-muted-foreground"}>
+                            Recruiter
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <Button type="submit" className="w-full" disabled={signupLoading}>
                       {signupLoading ? "Creating Account..." : "Sign Up"}
                     </Button>
@@ -188,7 +286,7 @@ const Auth = () => {
                 </TabsContent>
               </Tabs>
             </CardContent>
-
+            
             <CardFooter className="flex flex-col space-y-4 pt-4">
               <div className="relative w-full">
                 <div className="absolute inset-0 flex items-center">
@@ -200,7 +298,7 @@ const Auth = () => {
                   </span>
                 </div>
               </div>
-
+              
               <div className="grid grid-cols-3 gap-3">
                 <Button variant="outline" type="button" className="w-full">
                   Google
@@ -216,7 +314,7 @@ const Auth = () => {
           </Card>
         </div>
       </main>
-
+      
       <Footer />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Header from "@/components/Header";
@@ -19,116 +19,118 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-
-// Mock job data
-const jobListings = [
-  {
-    id: "1",
-    title: "Senior Frontend Developer",
-    company: "TechCorp",
-    location: "San Francisco, CA",
-    type: "Full-time",
-    postedDate: "3 days ago",
-    description: "We're looking for a senior frontend developer with 5+ years of experience with React, TypeScript, and modern web technologies. You'll be responsible for building user interfaces for our enterprise products.",
-    salary: "$120K - $150K",
-    isNew: true,
-  },
-  {
-    id: "2",
-    title: "Product Manager",
-    company: "InnovateTech",
-    location: "New York, NY",
-    type: "Full-time",
-    postedDate: "1 week ago",
-    description: "Join our product team to drive the strategy and development of our SaaS platform. You'll work closely with engineering, design, and marketing to ensure we're building the right product.",
-    salary: "$110K - $140K",
-  },
-  {
-    id: "3",
-    title: "UX/UI Designer",
-    company: "DesignStudio",
-    location: "Remote",
-    type: "Remote",
-    postedDate: "2 days ago",
-    description: "We're seeking a skilled UX/UI designer to create beautiful, intuitive interfaces for our clients. You should have a strong portfolio and experience with Figma and design systems.",
-    salary: "$90K - $120K",
-    isNew: true,
-  },
-  {
-    id: "4",
-    title: "Data Scientist",
-    company: "DataWorks",
-    location: "Chicago, IL",
-    type: "Contract",
-    postedDate: "5 days ago",
-    description: "Help us extract insights from data using statistical methods and machine learning. You should be proficient in Python, SQL, and have experience with data visualization tools.",
-    salary: "$100K - $130K",
-  },
-  {
-    id: "5",
-    title: "DevOps Engineer",
-    company: "CloudTech",
-    location: "Austin, TX",
-    type: "Full-time",
-    postedDate: "1 week ago",
-    description: "We're looking for a DevOps engineer to help us build and maintain our cloud infrastructure. You should have experience with AWS, Kubernetes, and CI/CD pipelines.",
-    salary: "$110K - $140K",
-  },
-  {
-    id: "6",
-    title: "Marketing Specialist",
-    company: "GrowthCorp",
-    location: "Remote",
-    type: "Remote",
-    postedDate: "3 days ago",
-    description: "Join our marketing team to help drive growth and engagement. You should have experience with digital marketing, content creation, and analytics.",
-    salary: "$70K - $90K",
-    isNew: true,
-  },
-  {
-    id: "7",
-    title: "Backend Developer",
-    company: "ServerTech",
-    location: "Seattle, WA",
-    type: "Full-time",
-    postedDate: "2 weeks ago",
-    description: "We're seeking a backend developer with experience in Node.js, Express, and MongoDB. You'll be responsible for building and maintaining our API infrastructure.",
-    salary: "$100K - $130K",
-  },
-  {
-    id: "8",
-    title: "Customer Success Manager",
-    company: "SupportHQ",
-    location: "Denver, CO",
-    type: "Full-time",
-    postedDate: "4 days ago",
-    description: "Help our customers get the most value from our product. You should have excellent communication skills and a passion for customer service.",
-    salary: "$80K - $100K",
-  },
-];
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const JobSearch = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [location, setLocation] = useState("");
   const [jobType, setJobType] = useState("");
   const [datePosted, setDatePosted] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
   const [salary, setSalary] = useState("");
+  const [jobListings, setJobListings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch jobs from Supabase
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching jobs:', error);
+          throw error;
+        }
+
+        // Mark jobs posted in the last 2 days as new
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        
+        const jobsWithNewFlag = data.map(job => ({
+          ...job,
+          isNew: new Date(job.created_at) > twoDaysAgo
+        }));
+        
+        setJobListings(jobsWithNewFlag);
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchJobs();
+
+    // Set up realtime subscription for new job postings
+    const jobsChannel = supabase
+      .channel('jobs_channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobs'
+        },
+        (payload) => {
+          console.log('Realtime update received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            // Add the new job to the list
+            const newJob = {
+              ...payload.new,
+              isNew: true
+            };
+            
+            setJobListings(prevJobs => [newJob, ...prevJobs]);
+            
+            toast({
+              title: "New Job Posted!",
+              description: `${newJob.title} at ${newJob.company} was just posted.`,
+              duration: 5000
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            // Update the job in the list
+            setJobListings(prevJobs => 
+              prevJobs.map(job => 
+                job.id === payload.new.id ? { ...job, ...payload.new } : job
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            // Remove the job from the list
+            setJobListings(prevJobs => 
+              prevJobs.filter(job => job.id !== payload.old.id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription
+    return () => {
+      supabase.removeChannel(jobsChannel);
+    };
+  }, [toast]);
   
   // Filter jobs based on search criteria
   const filteredJobs = jobListings.filter((job) => {
     const matchesSearch = 
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.description.toLowerCase().includes(searchTerm.toLowerCase());
+      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      job.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.description?.toLowerCase().includes(searchTerm.toLowerCase());
       
     const matchesLocation = 
       location === "" || 
-      job.location.toLowerCase().includes(location.toLowerCase());
+      job.location?.toLowerCase().includes(location.toLowerCase());
       
     const matchesJobType = 
       jobType === "" || 
-      job.type.toLowerCase() === jobType.toLowerCase();
+      job.job_type?.toLowerCase() === jobType.toLowerCase();
       
     return matchesSearch && matchesLocation && matchesJobType;
   });
@@ -341,22 +343,45 @@ const JobSearch = () => {
                 </div>
               </div>
               
-              <div className="space-y-4">
-                {filteredJobs.length > 0 ? (
-                  filteredJobs.map((job, index) => (
-                    <div key={job.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
-                      <JobCard {...job} />
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="rounded-xl p-6 animate-pulse bg-white/80 border">
+                      <div className="h-6 bg-muted rounded w-3/4 mb-4"></div>
+                      <div className="h-4 bg-muted rounded w-1/2 mb-3"></div>
+                      <div className="h-4 bg-muted rounded w-1/3 mb-6"></div>
+                      <div className="h-20 bg-muted rounded w-full"></div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">No jobs match your search criteria. Try adjusting your filters.</p>
-                    <Button variant="outline" className="mt-4" onClick={clearFilters}>
-                      Clear all filters
-                    </Button>
-                  </div>
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredJobs.length > 0 ? (
+                    filteredJobs.map((job, index) => (
+                      <div key={job.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
+                        <JobCard 
+                          id={job.id}
+                          title={job.title || "Untitled Job"}
+                          company={job.company || "Unknown Company"}
+                          location={job.location || "Remote"}
+                          type={job.job_type || "Full-time"}
+                          postedDate={new Date(job.created_at).toLocaleDateString()}
+                          description={job.description || "No description provided"}
+                          salary={job.salary_range || "Salary not specified"}
+                          isNew={job.isNew}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">No jobs match your search criteria. Try adjusting your filters.</p>
+                      <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                        Clear all filters
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {filteredJobs.length > 0 && (
                 <div className="mt-8 flex justify-center">

@@ -1,176 +1,163 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState } from 'react';
+import { Briefcase, MapPin, DollarSign, Mail, FileText } from 'lucide-react';
 
 const JobPostForm = () => {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  
-  const [jobTitle, setJobTitle] = useState("");
-  const [company, setCompany] = useState("");
-  const [location, setLocation] = useState("");
-  const [jobType, setJobType] = useState("");
-  const [salary, setSalary] = useState("");
-  const [description, setDescription] = useState("");
-  const [requirements, setRequirements] = useState("");
-  const [responsibilities, setResponsibilities] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    company: '',
+    location: '',
+    description: '',
+    salary: '',
+    contactEmail: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "You must be logged in to post a job.",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
-    
-    setIsLoading(true);
-    
+    setIsSubmitting(true);
     try {
-      const formattedDescription = `
-        ${description}
-        
-        ## Responsibilities
-        ${responsibilities}
-        
-        ## Requirements
-        ${requirements}
-      `;
+      // Simulated form submission
+      console.log('Submitting job post:', formData);
       
-      const { error } = await supabase
-        .from("jobs")
-        .insert([
-          {
-            title: jobTitle,
-            company,
-            location,
-            job_type: jobType,
-            salary_range: salary,
-            description: formattedDescription,
-            requirements,
-            posted_by: user.id,
-          },
-        ]);
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Job Posted",
-        description: "Your job listing has been posted successfully.",
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      alert('Job Post Created Successfully!');
+      // Reset form after successful submission
+      setFormData({
+        title: '',
+        company: '',
+        location: '',
+        description: '',
+        salary: '',
+        contactEmail: ''
       });
-      
-      setJobTitle("");
-      setCompany("");
-      setLocation("");
-      setJobType("");
-      setSalary("");
-      setDescription("");
-      setRequirements("");
-      setResponsibilities("");
-      
-      navigate("/recruiter-dashboard");
     } catch (error) {
-      console.error("Error posting job:", error);
-      toast({
-        title: "Error posting job",
-        description: error.message || "An error occurred while posting the job.",
-        variant: "destructive",
-      });
+      console.error('Error creating job post:', error);
+      alert('Failed to create job post');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Job Details</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="jobTitle">Job Title</Label>
-            <Input id="jobTitle" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Software Engineer" required />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="company">Company</Label>
-            <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company Name" required />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
-            <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, State, or Remote" required />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="jobType">Job Type</Label>
-            <Select required value={jobType} onValueChange={setJobType}>
-              <SelectTrigger id="jobType">
-                <SelectValue placeholder="Select job type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="full-time">Full-time</SelectItem>
-                <SelectItem value="part-time">Part-time</SelectItem>
-                <SelectItem value="contract">Contract</SelectItem>
-                <SelectItem value="remote">Remote</SelectItem>
-                <SelectItem value="internship">Internship</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="salary">Salary Range (Optional)</Label>
-            <Input id="salary" value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="e.g., $60,000 - $80,000" />
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl overflow-hidden">
+        <div className="bg-blue-600 text-white text-center py-6 px-4">
+          <h2 className="text-3xl font-bold tracking-tight">Create Job Post</h2>
+          <p className="mt-2 text-blue-100">Share your job opportunity with top talent</p>
         </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Briefcase className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="Job Title"
+              required
+              className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
+            />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FileText className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              name="company"
+              value={formData.company}
+              onChange={handleChange}
+              placeholder="Company Name"
+              required
+              className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
+            />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MapPin className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="Job Location"
+              required
+              className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
+            />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 pt-3 pointer-events-none">
+              <FileText className="h-5 w-5 text-gray-400" />
+            </div>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Job Description"
+              required
+              className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300 h-32 resize-none"
+            />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <DollarSign className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="number"
+              name="salary"
+              value={formData.salary}
+              onChange={handleChange}
+              placeholder="Salary (optional)"
+              className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
+            />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Mail className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="email"
+              name="contactEmail"
+              value={formData.contactEmail}
+              onChange={handleChange}
+              placeholder="Contact Email"
+              required
+              className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`w-full py-3 rounded-lg text-white font-semibold transition duration-300 ${
+              isSubmitting 
+                ? 'bg-blue-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+            }`}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Job Post'}
+          </button>
+        </form>
       </div>
-      
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Job Description</h2>
-        
-        <div className="space-y-2">
-          <Label htmlFor="description">Overview</Label>
-          <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Provide a detailed description of the job..." rows={4} required />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="responsibilities">Responsibilities</Label>
-          <Textarea id="responsibilities" value={responsibilities} onChange={(e) => setResponsibilities(e.target.value)} placeholder="List the key responsibilities for this position..." rows={4} required />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="requirements">Requirements</Label>
-          <Textarea id="requirements" value={requirements} onChange={(e) => setRequirements(e.target.value)} placeholder="List the skills, qualifications, and experience required..." rows={4} required />
-        </div>
-      </div>
-      
-      <div className="pt-4">
-        <Button type="submit" className="w-full md:w-auto" disabled={isLoading}>
-          {isLoading ? "Posting Job..." : "Post Job"}
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 };
 
