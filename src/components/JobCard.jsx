@@ -13,6 +13,7 @@ const JobCard = ({
   description,
   salary,
   isNew = false,
+  onViewJob,
 }) => {
   // Get color based on job type
   const getTypeColor = (type) => {
@@ -59,17 +60,17 @@ const JobCard = ({
             </div>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
-            <Badge className={`font-normal ${getTypeColor(type)}`}>{type}</Badge>
-            {salary && <Badge variant="outline" className="font-normal">{salary}</Badge>}
+            {type && <Badge className={`font-normal ${getTypeColor(type)}`}>{type}</Badge>}
+            {salary && salary !== 'Salary not specified' && salary !== ''
+              ? <Badge variant="outline" className="font-normal">{typeof salary === 'number' || !isNaN(Number(salary)) ? `₹${salary}` : salary}</Badge>
+              : <Badge variant="outline" className="font-normal">Salary not specified</Badge>}
           </div>
         </div>
         
         <div className="mt-4 md:mt-0">
-          <Link to={`/jobs/${id}`}>
-            <Button variant="outline" size="sm" className="transition-all duration-300 group-hover:bg-primary group-hover:text-white">
-              View Job
-            </Button>
-          </Link>
+          <Button variant="outline" size="sm" className="transition-all duration-300 group-hover:bg-primary group-hover:text-white" onClick={onViewJob}>
+            View Job
+          </Button>
         </div>
       </div>
       

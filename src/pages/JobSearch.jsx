@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
+import JobPlacard from '@/components/JobPlacard';
 import { Search, MapPin, Filter, Calendar, BarChart3, Briefcase, Clock } from "lucide-react";
 import {
   Select,
@@ -22,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+
 const JobSearch = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,6 +34,8 @@ const JobSearch = () => {
   const [salary, setSalary] = useState("");
   const [jobListings, setJobListings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Fetch jobs from Supabase
   useEffect(() => {
@@ -367,8 +371,12 @@ const JobSearch = () => {
                           type={job.job_type || "Full-time"}
                           postedDate={new Date(job.created_at).toLocaleDateString()}
                           description={job.description || "No description provided"}
-                          salary={job.salary_range || "Salary not specified"}
+                          salary={job.salary || "Salary not specified"}
                           isNew={job.isNew}
+                          onViewJob={() => {
+                            setSelectedJob(job);
+                            setIsModalOpen(true);
+                          }}
                         />
                       </div>
                     ))
@@ -394,6 +402,19 @@ const JobSearch = () => {
       </main>
       
       <Footer />
+
+      {/* Modal for JobPlacard */}
+      {isModalOpen && selectedJob && (
+        <JobPlacard
+          job={{
+            ...selectedJob,
+            type: selectedJob.job_type || selectedJob.type,
+            postedDate: new Date(selectedJob.created_at).toLocaleDateString(),
+          }}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 };
