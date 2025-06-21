@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Briefcase, MapPin, DollarSign, Mail, FileText } from 'lucide-react';
+import { Briefcase, MapPin, DollarSign, Mail, FileText, Clock } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 
 const JobPostForm = ({ onJobPostSuccess }) => {
   const [formData, setFormData] = useState({
-    title: '',
-    company: '',
-    location: '',
-    description: '',
-    salary: '',
-    contactEmail: ''
+    title: 'Software Engineer',
+    company: 'Acme Corp',
+    location: 'Remote',
+    description: 'Join our team to build amazing products!',
+    salary: '100000',
+    contactEmail: 'hr@acme.com',
+    job_type: 'Full-time',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [skills, setSkills] = useState([]);
@@ -62,6 +63,7 @@ const JobPostForm = ({ onJobPostSuccess }) => {
             salary: formData.salary,
             contact_email: formData.contactEmail,
             skills: skills,
+            job_type: formData.job_type,
           },
         ])
         .select();
@@ -76,7 +78,8 @@ const JobPostForm = ({ onJobPostSuccess }) => {
         location: '',
         description: '',
         salary: '',
-        contactEmail: ''
+        contactEmail: '',
+        job_type: '',
       });
       setSkills([]);
       setSkillInput("");
@@ -185,6 +188,27 @@ const JobPostForm = ({ onJobPostSuccess }) => {
               required
               className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
             />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Clock className="h-5 w-5 text-gray-400" />
+            </div>
+            <select
+              name="job_type"
+              value={formData.job_type}
+              onChange={handleChange}
+              required
+              className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300 appearance-none"
+            >
+              <option value="" disabled>Select Job Type</option>
+              <option value="Full-time">Full-time</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Contract">Contract</option>
+              <option value="Remote">Remote</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="Internship">Internship</option>
+            </select>
           </div>
 
           <div>

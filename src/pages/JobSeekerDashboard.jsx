@@ -1,273 +1,560 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Briefcase, Calendar, FileText, Clock, BookmarkPlus } from "lucide-react";
-import { InterviewCalendar } from "@/components/InterviewCalendar";
-import { ResumeBuilder } from "@/components/ResumeBuilder";
+import React, { useState, useEffect } from 'react';
 
-const JobSeekerDashboard = () => {
-  const { isAuthenticated, isLoading, user, isRecruiter } = useAuth();
-  const [savedJobs, setSavedJobs] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [dashboardTab, setDashboardTab] = useState("resume");
-  const [selectedResume, setSelectedResume] = useState(null);
-  const [selectedResumeId, setSelectedResumeId] = useState(null);
-  const [activeTab, setActiveTab] = useState('preview');
-
-  // Redirect if not authenticated or if user is a recruiter
-  if (!isLoading && (!isAuthenticated || isRecruiter)) {
-    return <Navigate to="/auth" replace />;
-  }
+const ChildrensAuthorWebsite = () => {
+  const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
 
   useEffect(() => {
-    if (!user) return;
-
-    const fetchDashboardData = async () => {
-      setLoadingData(true);
-      try {
-        // Fetch saved jobs
-        const { data: savedJobsData, error: savedJobsError } = await supabase
-          .from('saved_jobs')
-          .select('*, job:jobs(*)')
-          .eq('user_id', user.id);
-
-        if (savedJobsError) throw savedJobsError;
-
-        // Fetch applications
-        const { data: applicationsData, error: applicationsError } = await supabase
-          .from('applications')
-          .select('*, job:jobs(*)')
-          .eq('applicant_id', user.id);
-
-        if (applicationsError) throw applicationsError;
-
-        // Extract and set the data
-        const savedJobsList = savedJobsData.map(item => item.job);
-        setSavedJobs(savedJobsList);
-        setApplications(applicationsData);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoadingData(false);
-      }
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = (scrollTop / docHeight) * 100;
+      
+      setScrollProgress(scrollPercent);
+      setScrolled(scrollTop > 50);
     };
 
-    fetchDashboardData();
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-    // Set up realtime subscription for saved jobs and applications
-    const savedJobsChannel = supabase
-      .channel('saved_jobs_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'saved_jobs',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          // Refetch saved jobs when changes occur
-          fetchDashboardData();
-        }
-      )
-      .subscribe();
+  useEffect(() => {
+    // Intersection Observer for animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
 
-    const applicationsChannel = supabase
-      .channel('applications_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'applications',
-          filter: `applicant_id=eq.${user.id}`,
-        },
-        () => {
-          // Refetch applications when changes occur
-          fetchDashboardData();
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
         }
-      )
-      .subscribe();
+      });
+    }, observerOptions);
+
+    const fadeElements = document.querySelectorAll('.fade-in-up');
+    fadeElements.forEach(el => observer.observe(el));
+
+    // Create sparkles periodically
+    const createSparkle = () => {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      sparkle.style.left = Math.random() * window.innerWidth + 'px';
+      sparkle.style.top = Math.random() * window.innerHeight + 'px';
+      document.body.appendChild(sparkle);
+      
+      setTimeout(() => {
+        sparkle.remove();
+      }, 3000);
+    };
+
+    const sparkleInterval = setInterval(createSparkle, 2000);
 
     return () => {
-      supabase.removeChannel(savedJobsChannel);
-      supabase.removeChannel(applicationsChannel);
+      observer.disconnect();
+      clearInterval(sparkleInterval);
     };
-  }, [user]);
+  }, []);
 
-  if (isLoading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-center">
-          <div className="h-12 w-12 mx-auto rounded-full bg-primary/20"></div>
-          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      alert('Please fill in all fields! ✨');
+      return;
+    }
+    
+    alert('Thank you for your magical message! I\'ll get back to you soon! 🌟');
+    setFormData({ name: '', email: '', subject: '', message: '' });
+  };
+
+  const smoothScroll = (targetId) => {
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">Job Seeker Dashboard</h1>
-            <p className="text-muted-foreground">Manage your job search and applications</p>
-          </div>
-          
-          <Tabs defaultValue="applications" className="space-y-8" value={dashboardTab} onValueChange={setDashboardTab}>
-            <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2">
-              <TabsTrigger value="applications" className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4" />
-                <span>Applications</span>
-              </TabsTrigger>
-              <TabsTrigger value="saved" className="flex items-center gap-2">
-                <BookmarkPlus className="h-4 w-4" />
-                <span>Saved Jobs</span>
-              </TabsTrigger>
-              <TabsTrigger value="interviews" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>Interviews</span>
-              </TabsTrigger>
-              <TabsTrigger value="resume" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                <span>Resume</span>
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="applications" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Applications</CardTitle>
-                  <CardDescription>Track the status of your job applications</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loadingData ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="p-4 border rounded-md animate-pulse">
-                          <div className="h-5 bg-muted rounded w-1/3 mb-2"></div>
-                          <div className="h-4 bg-muted rounded w-1/4 mb-4"></div>
-                          <div className="h-4 bg-muted rounded w-full"></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : applications.length > 0 ? (
-                    <div className="space-y-4">
-                      {applications.map((application) => (
-                        <div key={application.id} className="p-4 border rounded-md">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-semibold">{application.job?.title || 'Job Application'}</h3>
-                              <p className="text-sm text-muted-foreground">{application.job?.company || 'Company'}</p>
-                            </div>
-                            <div className="flex items-center">
-                              <span 
-                                className={`px-2 py-1 text-xs rounded-full ${
-                                  application.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
-                                  application.status === 'Interviewing' ? 'bg-blue-100 text-blue-800' :
-                                  application.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                  application.status === 'Hired' ? 'bg-green-100 text-green-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}
-                              >
-                                {application.status}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-2 flex items-center text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Applied {new Date(application.created_at).toLocaleDateString()}
-                          </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 overflow-x-hidden">
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Fredoka+One:wght@400&display=swap');
+        
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
 
-                          <div className="mt-3 flex justify-end">
-                            <Button size="sm" variant="outline">View Details</Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10">
-                      <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/50" />
-                      <h3 className="mt-4 text-lg font-medium">No applications yet</h3>
-                      <p className="mt-1 text-muted-foreground">Start applying to jobs to see them here.</p>
-                      <Button className="mt-4" size="sm">Browse Jobs</Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="saved" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Saved Jobs</CardTitle>
-                  <CardDescription>Jobs you've bookmarked for later</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loadingData ? (
-                    <div className="space-y-4">
-                      {[1, 2].map((i) => (
-                        <div key={i} className="p-4 border rounded-md animate-pulse">
-                          <div className="h-5 bg-muted rounded w-1/3 mb-2"></div>
-                          <div className="h-4 bg-muted rounded w-1/4 mb-4"></div>
-                          <div className="h-4 bg-muted rounded w-full"></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : savedJobs.length > 0 ? (
-                    <div className="space-y-4">
-                      {savedJobs.map((job) => (
-                        <div key={job.id} className="p-4 border rounded-md">
-                          <div>
-                            <h3 className="font-semibold">{job.title}</h3>
-                            <p className="text-sm text-muted-foreground">{job.company}</p>
-                            <p className="text-sm">{job.location}</p>
-                          </div>
-                          
-                          <div className="mt-3 flex justify-end space-x-2">
-                            <Button size="sm" variant="outline">Remove</Button>
-                            <Button size="sm">Apply Now</Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10">
-                      <BookmarkPlus className="h-16 w-16 mx-auto text-muted-foreground/50" />
-                      <h3 className="mt-4 text-lg font-medium">No saved jobs</h3>
-                      <p className="mt-1 text-muted-foreground">Save jobs you're interested in to apply later.</p>
-                      <Button className="mt-4" size="sm">Browse Jobs</Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="interviews" className="space-y-4">
-              <InterviewCalendar />
-            </TabsContent>
-            
-            <TabsContent value="resume" className="space-y-4">
-              <ResumeBuilder onShowResumeTab={() => setDashboardTab("resume")} />
-            </TabsContent>
-          </Tabs>
+        body {
+          font-family: 'Poppins', sans-serif;
+          overflow-x: hidden;
+        }
+
+        .glass-bg {
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .floating-shape {
+          position: absolute;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.1);
+          animation: float 15s infinite linear;
+          backdrop-filter: blur(10px);
+        }
+
+        .floating-shape:nth-child(1) {
+          width: 100px;
+          height: 100px;
+          top: 20%;
+          left: 10%;
+          animation-delay: 0s;
+        }
+
+        .floating-shape:nth-child(2) {
+          width: 60px;
+          height: 60px;
+          top: 60%;
+          right: 20%;
+          animation-delay: -5s;
+        }
+
+        .floating-shape:nth-child(3) {
+          width: 80px;
+          height: 80px;
+          bottom: 30%;
+          left: 30%;
+          animation-delay: -10s;
+        }
+
+        @keyframes float {
+          0% { transform: translateY(0px) rotate(0deg); }
+          33% { transform: translateY(-30px) rotate(120deg); }
+          66% { transform: translateY(30px) rotate(240deg); }
+          100% { transform: translateY(0px) rotate(360deg); }
+        }
+
+        .logo-gradient {
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .hero-title {
+          font-family: 'Fredoka One', cursive;
+          background: linear-gradient(45deg, #fff, #f8f9fa, #fff);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+          animation: slideInLeft 1s ease;
+        }
+
+        .section-title {
+          font-family: 'Fredoka One', cursive;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .floating-book {
+          animation: floatBook 4s ease-in-out infinite;
+        }
+
+        .floating-book:nth-child(1) { animation-delay: 0s; }
+        .floating-book:nth-child(2) { animation-delay: -1s; }
+        .floating-book:nth-child(3) { animation-delay: -2s; }
+
+        @keyframes floatBook {
+          0%, 100% { transform: translateY(0px) rotateY(0deg); }
+          50% { transform: translateY(-20px) rotateY(10deg); }
+        }
+
+        @keyframes slideInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .fade-in-up {
+          opacity: 0;
+          transform: translateY(30px);
+          transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .fade-in-up.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        .sparkle {
+          position: absolute;
+          width: 6px;
+          height: 6px;
+          background: radial-gradient(circle, #fff 0%, transparent 70%);
+          border-radius: 50%;
+          animation: sparkle 3s infinite;
+          pointer-events: none;
+          z-index: 1000;
+        }
+
+        @keyframes sparkle {
+          0%, 100% { 
+            opacity: 0; 
+            transform: scale(0) rotate(0deg); 
+          }
+          50% { 
+            opacity: 1; 
+            transform: scale(1) rotate(180deg); 
+          }
+        }
+
+        .author-photo::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: conic-gradient(transparent, rgba(255,255,255,0.3), transparent);
+          animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+          100% { transform: rotate(360deg); }
+        }
+
+        .book-cover::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+          transition: left 0.6s ease;
+        }
+
+        .book-card:hover .book-cover::before {
+          left: 100%;
+        }
+
+        .nav-link::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          transition: left 0.3s ease;
+          z-index: -1;
+        }
+
+        .nav-link:hover::before {
+          left: 0;
+        }
+      `}</style>
+
+      {/* Progress Bar */}
+      <div 
+        className="fixed top-0 left-0 h-1 bg-gradient-to-r from-pink-500 to-purple-500 z-50 transition-all duration-300"
+        style={{ width: `${scrollProgress}%` }}
+      />
+
+      {/* Background Animation */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="floating-shape"></div>
+        <div className="floating-shape"></div>
+        <div className="floating-shape"></div>
+      </div>
+
+      {/* Navigation */}
+      <nav className={`fixed w-full top-0 z-40 transition-all duration-300 py-4 ${
+        scrolled ? 'bg-white/95 backdrop-blur-lg shadow-lg' : 'glass-bg'
+      }`}>
+        <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">
+          <button 
+            onClick={() => smoothScroll('home')}
+            className="text-2xl font-bold logo-gradient hover:scale-105 transition-transform duration-300"
+            style={{ fontFamily: 'Fredoka One, cursive' }}
+          >
+            ✨ Emma Stories
+          </button>
+          <div className="hidden md:flex space-x-4">
+            {[
+              { id: 'home', label: '🏠 Home' },
+              { id: 'books', label: '📚 Books' },
+              { id: 'about', label: '👩‍💻 About' },
+              { id: 'contact', label: '📧 Contact' }
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => smoothScroll(item.id)}
+                className="nav-link relative px-6 py-3 text-white font-medium rounded-full glass-bg hover:text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </main>
-      
-      <Footer />
+      </nav>
+
+      {/* Hero Section */}
+      <section id="home" className="pt-20 pb-16 text-white relative overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6 py-16">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-16">
+            <div className="flex-1 text-left">
+              <h1 className="hero-title text-4xl lg:text-6xl font-bold mb-6">
+                Welcome to Emma's Magical Universe! ✨
+              </h1>
+              <p className="text-lg lg:text-xl mb-8 opacity-90 leading-relaxed">
+                Where imagination soars, dreams come alive, and every story is a new adventure waiting to unfold. 
+                Join thousands of young readers on magical journeys!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => smoothScroll('books')}
+                  className="px-8 py-4 bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold rounded-full hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl"
+                >
+                  📖 Explore My Books
+                </button>
+                <button
+                  onClick={() => smoothScroll('about')}
+                  className="px-8 py-4 glass-bg text-white font-semibold rounded-full hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20"
+                >
+                  🌟 Meet Emma
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 relative h-96">
+              <div className="floating-book absolute top-12 left-12 w-24 h-32 bg-gradient-to-br from-pink-400 to-yellow-400 rounded-2xl shadow-xl flex items-center justify-center text-3xl">
+                📚
+              </div>
+              <div className="floating-book absolute top-24 right-24 w-24 h-32 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl shadow-xl flex items-center justify-center text-3xl">
+                🌈
+              </div>
+              <div className="floating-book absolute bottom-20 left-32 w-24 h-32 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl shadow-xl flex items-center justify-center text-3xl">
+                ⭐
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <div className="bg-white rounded-t-[3rem] mt-16 shadow-2xl relative">
+        {/* Books Section */}
+        <section id="books" className="py-20">
+          <div className="max-w-6xl mx-auto px-6">
+            <h2 className="section-title text-4xl lg:text-5xl font-bold text-center mb-16 relative">
+              ✨ My Magical Books
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full mt-4"></div>
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[
+                {
+                  title: 'The Rainbow Adventure',
+                  emoji: '🌈',
+                  gradient: 'from-pink-400 to-yellow-400',
+                  description: 'Join Lily as she discovers the secret behind the magical rainbow that appears in her backyard every morning, leading to a world of wonder and friendship.'
+                },
+                {
+                  title: 'Whiskers and Wonder',
+                  emoji: '🐱',
+                  gradient: 'from-blue-400 to-cyan-400',
+                  description: 'A heartwarming tale about a curious kitten who learns the importance of friendship, kindness, and believing in yourself through magical adventures.'
+                },
+                {
+                  title: 'The Secret Garden Club',
+                  emoji: '🌸',
+                  gradient: 'from-green-400 to-pink-400',
+                  description: 'Four friends discover an enchanted garden where plants can talk, flowers sing beautiful melodies, and every day brings a new magical surprise.'
+                }
+              ].map((book, index) => (
+                <div
+                  key={index}
+                  className="book-card fade-in-up bg-white rounded-3xl p-8 text-center shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 hover:scale-105 border border-gray-100 relative overflow-hidden group"
+                >
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-400 to-yellow-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+                  <div className={`book-cover relative w-36 h-48 bg-gradient-to-br ${book.gradient} rounded-2xl mx-auto mb-8 flex items-center justify-center text-4xl shadow-lg overflow-hidden group-hover:rotate-y-12 transition-transform duration-300`}>
+                    {book.emoji}
+                  </div>
+                  <h3 className="text-xl font-bold mb-4 text-gray-800" style={{ fontFamily: 'Fredoka One, cursive' }}>
+                    {book.title}
+                  </h3>
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    {book.description}
+                  </p>
+                  <button className="px-6 py-3 bg-gradient-to-r from-blue-400 to-cyan-400 text-white font-semibold rounded-full hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl">
+                    📖 Read More
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section id="about" className="py-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white">
+          <div className="max-w-6xl mx-auto px-6">
+            <h2 className="text-4xl lg:text-5xl font-bold text-center mb-16" style={{ fontFamily: 'Fredoka One, cursive' }}>
+              🌟 Meet Emma
+            </h2>
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div className="text-center lg:text-left">
+                <div className="author-photo relative w-64 h-64 bg-gradient-to-br from-pink-400 to-yellow-400 rounded-full mx-auto lg:mx-0 flex items-center justify-center text-6xl shadow-2xl overflow-hidden">
+                  👩‍💻
+                </div>
+              </div>
+              <div className="space-y-6">
+                <p className="text-lg leading-relaxed opacity-95">
+                  Hello, wonderful readers! I'm Emma, and I believe that every child deserves to experience the pure magic of storytelling. 
+                  For over a decade, I've been crafting tales that spark imagination and teach valuable life lessons.
+                </p>
+                <p className="text-lg leading-relaxed opacity-95">
+                  My journey began when I watched my own children's faces light up during bedtime stories. That magical moment when their eyes sparkle with wonder? 
+                  That's what I live for, and what I pour into every single story I write.
+                </p>
+                <p className="text-lg leading-relaxed opacity-95">
+                  When I'm not writing, you'll find me visiting schools, libraries, and bookstores, sharing the joy of reading with young minds and encouraging them to create their own magical worlds.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-16">
+              {[
+                { number: '15+', label: 'Published Books' },
+                { number: '50K+', label: 'Happy Readers' },
+                { number: '100+', label: 'School Visits' },
+                { number: '12', label: 'Awards Won' }
+              ].map((stat, index) => (
+                <div key={index} className="text-center glass-bg rounded-2xl p-6 hover:-translate-y-2 transition-transform duration-300">
+                  <div className="text-3xl font-bold mb-2" style={{ fontFamily: 'Fredoka One, cursive' }}>
+                    {stat.number}
+                  </div>
+                  <div className="text-sm opacity-90">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Section */}
+        <section id="contact" className="py-20 bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 text-white">
+          <div className="max-w-4xl mx-auto px-6">
+            <h2 className="text-4xl lg:text-5xl font-bold text-center mb-16" style={{ fontFamily: 'Fredoka One, cursive' }}>
+              💌 Let's Connect!
+            </h2>
+           placeholder="your.email@example.com"
+                    className="w-full px-4 py-3 glass-bg rounded-2xl text-white placeholder-white/70 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="mb-6">
+                <label className="block text-white font-medium mb-2">Subject 🎯</label>
+                <input
+                  type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleInputChange}
+                  placeholder="What's this about?"
+                  className="w-full px-4 py-3 glass-bg rounded-2xl text-white placeholder-white/70 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300"
+                  required
+                />
+              </div>
+              <div className="mb-8">
+                <label className="block text-white font-medium mb-2">Your Message 💭</label>
+                <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  placeholder="Tell me your story..."
+                  rows="5"
+                  className="w-full px-4 py-3 glass-bg rounded-2xl text-white placeholder-white/70 border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 resize-none"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full px-8 py-4 bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold rounded-full hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                🚀 Send My Message
+              </button>
+            </form>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-12">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="grid md:grid-cols-3 gap-8 mb-8">
+              <div>
+                <h3 className="text-xl font-bold mb-4" style={{ fontFamily: 'Fredoka One, cursive' }}>
+                  Emma Stories
+                </h3>
+                <p className="text-gray-300">Creating magical worlds where imagination knows no bounds.</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-cyan-400">Quick Links</h3>
+                <div className="space-y-2">
+                  {['Home', 'Books', 'About', 'Contact'].map((link) => (
+                    <button
+                      key={link}
+                      onClick={() => smoothScroll(link.toLowerCase())}
+                      className="block text-gray-300 hover:text-white transition-colors"
+                    >
+                      {link}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-cyan-400">Connect</h3>
+                <div className="flex space-x-4">
+                  {['📘', '📷', '🐦', '✉️'].map((icon, index) => (
+                    <button
+                      key={index}
+                      className="w-12 h-12 glass-bg rounded-full flex items-center justify-center text-xl hover:-translate-y-1 transition-all duration-300 hover:bg-gradient-to-r hover:from-cyan-400 hover:to-blue-500"
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-gray-700 pt-8 text-center text-gray-400">
+              <p>&copy; 2025 Emma Stories. All rights reserved. Made with ✨ and lots of imagination!</p>
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 };
 
-export default JobSeekerDashboard;
+export default ChildrensAuthorWebsite;

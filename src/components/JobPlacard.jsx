@@ -1,11 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Building, X, Clock, DollarSign, Users, Briefcase, Star, Share2, Bookmark, BookmarkPlus, ExternalLink } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-const JobPlacard = ({ job, isOpen, onClose }) => {
+const JobPlacard = ({ job, isOpen, onClose, onApplied }) => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const checkAlreadyApplied = async () => {
+      if (user && job && job.id) {
+        const { data, error } = await supabase
+          .from('applications')
+          .select('id')
+          .eq('applicant_id', user.id)
+          .eq('job_id', job.id)
+          .maybeSingle();
+        if (data) setAlreadyApplied(true);
+      }
+    };
+    checkAlreadyApplied();
+
+    const checkBookmarked = async () => {
+      if (user && job && job.id) {
+        const { data } = await supabase
+          .from('saved_jobs')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('job_id', job.id)
+          .maybeSingle();
+        if (data) setIsBookmarked(true);
+      }
+    };
+    checkBookmarked();
+  }, [user, job]);
 
   if (!isOpen || !job) return null;
 
@@ -26,16 +58,88 @@ const JobPlacard = ({ job, isOpen, onClose }) => {
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
+    if (!user) {
+      alert('You must be logged in to apply for a job.');
+      return;
+    }
     setIsApplying(true);
-    setTimeout(() => {
-      setIsApplying(false);
+    try {
+      console.log('Applying for job:', job.id, 'as user:', user.id);
+      const { data, error, status, statusText } = await supabase
+        .from('applications')
+        .insert([
+          {
+            applicant_id: user.id,
+            job_id: job.id,
+            status: 'Pending',
+          },
+        ])
+        .select();
+      console.log('Supabase response:', { data, error, status, statusText });
+      if (error) {
+        console.error('Supabase error:', error);
+        alert('Failed to apply: ' + (error.message || JSON.stringify(error)) + ` (status: ${status}, statusText: ${statusText})`);
+        return;
+      }
       alert('Application submitted successfully!');
-    }, 2000);
+      
+      // Also remove from saved jobs if it exists there
+      const { error: deleteError } = await supabase
+        .from('saved_jobs')
+        .delete()
+        .match({ user_id: user.id, job_id: job.id });
+
+      if (deleteError) {
+        // Non-critical error, so we just log it and don't block the user
+        console.error('Could not remove from saved jobs:', deleteError.message);
+      }
+
+      if (onApplied) onApplied();
+      if (onClose) onClose();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('Failed to apply: ' + (error.message || JSON.stringify(error)));
+    } finally {
+      setIsApplying(false);
+    }
   };
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
+  const handleBookmark = async () => {
+    if (!user) {
+      alert('You must be logged in to save a job.');
+      return;
+    }
+    if (!isBookmarked) {
+      // Save job
+      const { data, error } = await supabase
+        .from('saved_jobs')
+        .insert([
+          {
+            user_id: user.id,
+            job_id: job.id,
+          },
+        ]);
+      if (error) {
+        // Just log the error, don't alert
+        console.error('Failed to save job:', error);
+        return;
+      }
+      setIsBookmarked(true);
+    } else {
+      // Unsave job
+      const { error } = await supabase
+        .from('saved_jobs')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('job_id', job.id);
+      if (error) {
+        // Just log the error, don't alert
+        console.error('Failed to unsave job:', error);
+        return;
+      }
+      setIsBookmarked(false);
+    }
   };
 
   const handleShare = () => {
@@ -97,14 +201,16 @@ const JobPlacard = ({ job, isOpen, onClose }) => {
               >
                 <Share2 size={16} />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBookmark}
-                className={`text-white hover:bg-white/20 ${isBookmarked ? 'text-yellow-300' : ''}`}
-              >
-                <Bookmark size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
-              </Button>
+              {!alreadyApplied && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBookmark}
+                  className={`hover:bg-white/20 ${isBookmarked ? 'text-yellow-400' : 'text-white'}`}
+                >
+                  <Bookmark size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -179,28 +285,31 @@ const JobPlacard = ({ job, isOpen, onClose }) => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t">
-            <Button
-              onClick={handleApply}
-              disabled={isApplying}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:scale-100"
-            >
-              {isApplying ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Applying...
-                </>
-              ) : (
-                'Apply Now'
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              className="border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600 font-semibold py-3 rounded-xl transition-all duration-300 flex items-center gap-2"
-              onClick={handleBookmark}
-            >
-              <BookmarkPlus className="w-4 h-4" />
-              Save Job
-            </Button>
+            {alreadyApplied ? (
+              <Button
+                className="flex-1 bg-red-50 text-red-400 border-2 border-red-100 font-semibold py-3 rounded-xl cursor-not-allowed text-xl"
+                disabled
+              >
+                Already Applied
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={handleApply}
+                  disabled={isApplying}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:scale-100"
+                >
+                  {isApplying ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Applying...
+                    </>
+                  ) : (
+                    'Apply Now'
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

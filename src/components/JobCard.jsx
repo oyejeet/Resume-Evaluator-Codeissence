@@ -14,67 +14,77 @@ const JobCard = ({
   salary,
   isNew = false,
   onViewJob,
+  actionButton,
 }) => {
-  // Get color based on job type
+  // Color mapping for job types
   const getTypeColor = (type) => {
     switch (type) {
       case "Full-time":
-        return "bg-green-100 text-green-800 hover:bg-green-200";
+        return "bg-green-100 text-green-800 border-green-200";
       case "Part-time":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-200";
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "Contract":
-        return "bg-purple-100 text-purple-800 hover:bg-purple-200";
+        return "bg-purple-100 text-purple-800 border-purple-200";
       case "Remote":
-        return "bg-indigo-100 text-indigo-800 hover:bg-indigo-200";
+        return "bg-indigo-100 text-indigo-800 border-indigo-200";
+      case "Hybrid":
+        return "bg-pink-100 text-pink-800 border-pink-200";
       case "Internship":
-        return "bg-amber-100 text-amber-800 hover:bg-amber-200";
+        return "bg-amber-100 text-amber-800 border-amber-200";
       default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-200";
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   return (
-    <div className="group glass rounded-xl p-6 transition-all duration-300 hover:shadow-md">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+    <div className="group rounded-xl p-6 bg-gradient-to-br from-white to-blue-50 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
         <div>
-          <div className="flex items-center mb-2">
-            <h3 className="text-lg font-semibold mr-3">{title}</h3>
-            {isNew && (
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                New
+          <h3 className="text-xl font-bold text-gray-800 mb-1">{title}</h3>
+          <div className="flex flex-wrap items-center text-sm text-gray-600 gap-3 mb-3">
+            <span className="flex items-center gap-1">
+              <Building size={14} /> {company}
+            </span>
+            <span className="flex items-center gap-1">
+              <MapPin size={14} /> {location}
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar size={14} /> {postedDate}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {type && (
+              <Badge variant="outline" className={`font-semibold ${getTypeColor(type)}`}>
+                {type}
+              </Badge>
+            )}
+            {salary && salary !== 'Salary not specified' && salary !== '' ? (
+              <Badge variant="outline" className="font-semibold bg-gray-100 border-gray-200">
+                {typeof salary === 'number' || !isNaN(Number(salary)) ? `₹${salary}` : salary}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="font-semibold bg-gray-100 border-gray-200">
+                Salary not specified
               </Badge>
             )}
           </div>
-          <div className="flex flex-wrap items-center text-sm text-muted-foreground gap-3 mb-2">
-            <div className="flex items-center">
-              <Building size={14} className="mr-1" />
-              <span>{company}</span>
-            </div>
-            <div className="flex items-center">
-              <MapPin size={14} className="mr-1" />
-              <span>{location}</span>
-            </div>
-            <div className="flex items-center">
-              <Calendar size={14} className="mr-1" />
-              <span>{postedDate}</span>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {type && <Badge className={`font-normal ${getTypeColor(type)}`}>{type}</Badge>}
-            {salary && salary !== 'Salary not specified' && salary !== ''
-              ? <Badge variant="outline" className="font-normal">{typeof salary === 'number' || !isNaN(Number(salary)) ? `₹${salary}` : salary}</Badge>
-              : <Badge variant="outline" className="font-normal">Salary not specified</Badge>}
-          </div>
         </div>
-        
         <div className="mt-4 md:mt-0">
-          <Button variant="outline" size="sm" className="transition-all duration-300 group-hover:bg-primary group-hover:text-white" onClick={onViewJob}>
-            View Job
-          </Button>
+          {actionButton ? (
+            actionButton
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-blue-500 text-white hover:bg-blue-600 transition-all duration-300 transform group-hover:scale-105"
+              onClick={onViewJob}
+            >
+              View Job
+            </Button>
+          )}
         </div>
       </div>
-      
-      <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
+      <p className="text-sm text-gray-700 line-clamp-2">{description}</p>
     </div>
   );
 };

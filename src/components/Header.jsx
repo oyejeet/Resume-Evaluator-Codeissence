@@ -40,12 +40,14 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
-          <Link 
-            to="/jobs" 
-            className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
-          >
-            Find Jobs
-          </Link>
+          {!isRecruiter && (
+            <Link 
+              to="/jobs" 
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+            >
+              Find Jobs
+            </Link>
+          )}
           
           {isAuthenticated && !isRecruiter && (
             <Link 
