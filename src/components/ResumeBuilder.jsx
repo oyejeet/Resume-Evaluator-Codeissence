@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Briefcase, GraduationCap, User, Mail, Phone, MapPin, Plus } from 'lucid
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from "react-router-dom";
+import html2pdf from "html2pdf.js";
 
 export const ResumeBuilder = () => {
   const { resumes, createResume, updateResume, deleteResume } = useUserResumes();
@@ -20,6 +21,7 @@ export const ResumeBuilder = () => {
   const [selectedResumeId, setSelectedResumeId] = useState(null);
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState('edit');
+  const previewRef = useRef();
 
   // Find the primary resume or the first resume
   const primaryResume = resumes.find(r => r.is_primary) || resumes[0];
@@ -219,6 +221,20 @@ export const ResumeBuilder = () => {
       skills: [''],
     });
     setActiveTab('edit');
+  };
+
+  const handleDownload = () => {
+    if (previewRef.current) {
+      html2pdf()
+        .from(previewRef.current)
+        .set({
+          margin: 0.5,
+          filename: `${formState.personalInfo.fullName || "resume"}.pdf`,
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: "in", format: "letter", orientation: "portrait" }
+        })
+        .save();
+    }
   };
 
   return (
@@ -553,13 +569,15 @@ export const ResumeBuilder = () => {
         <TabsContent value="preview" className="space-y-6">
           <Card>
             <CardContent className="pt-6">
-              <ResumePreview resume={formState} />
+              <div ref={previewRef}>
+                <ResumePreview resume={formState} />
+              </div>
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => setActiveTab('edit')}>
                 Edit
               </Button>
-              <Button>Download PDF</Button>
+              <Button onClick={handleDownload}>Download PDF</Button>
             </CardFooter>
           </Card>
         </TabsContent>
