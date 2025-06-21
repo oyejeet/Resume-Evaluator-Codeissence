@@ -9,6 +9,8 @@ import { useResumeTemplates } from '@/hooks/use-resume-templates';
 import { useToast } from '@/hooks/use-toast';
 import { Briefcase, GraduationCap, User, Mail, Phone, MapPin, Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from "react-router-dom";
 
 export const ResumeBuilder = () => {
   const { resumes, createResume, updateResume, deleteResume } = useUserResumes();
@@ -16,6 +18,8 @@ export const ResumeBuilder = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('edit');
   const [selectedResumeId, setSelectedResumeId] = useState(null);
+  const navigate = useNavigate();
+  const [activeView, setActiveView] = useState('edit');
 
   // Find the primary resume or the first resume
   const primaryResume = resumes.find(r => r.is_primary) || resumes[0];
@@ -25,18 +29,33 @@ export const ResumeBuilder = () => {
 
   // Initialize form state based on selected resume or with empty values
   const [formState, setFormState] = useState({
-    name: selectedResume?.name || 'My Resume',
+    name: 'My Resume',
     personalInfo: {
-      fullName: '',
-      email: '',
-      phone: '',
-      location: '',
-      title: '',
-      summary: '',
+      fullName: 'John Doe',
+      email: 'johndoe@example.com',
+      phone: '(123) 456-7890',
+      location: 'San Francisco, CA',
+      title: 'Software Developer',
+      summary: 'A brief summary of your professional background and goals',
     },
-    experience: [{ company: '', role: '', startDate: '', endDate: '', description: '' }],
-    education: [{ institution: '', degree: '', year: '', description: '' }],
-    skills: [''],
+    experience: [
+      {
+        company: 'Company Name',
+        role: 'Job Title',
+        startDate: 'Jan 2020',
+        endDate: 'Present',
+        description: 'Describe your responsibilities and achievements',
+      }
+    ],
+    education: [
+      {
+        institution: 'University or School Name',
+        degree: 'Bachelor of Science in Computer Science',
+        year: '2015 - 2019',
+        description: 'Relevant coursework, honors, activities',
+      }
+    ],
+    skills: ['JavaScript', 'React', 'SQL', 'etc.'],
     ...selectedResume?.resume_data
   });
 
@@ -103,37 +122,38 @@ export const ResumeBuilder = () => {
 
   const saveResume = async () => {
     try {
-      if (selectedResume) {
-        await updateResume(selectedResume.id, {
-          name: formState.name,
-          resume_data: {
-            personalInfo: formState.personalInfo,
-            experience: formState.experience,
+      const { data, error } = await supabase
+        .from('resumes')
+        .insert([
+          {
+            full_name: formState.personalInfo.fullName,
+            professional_title: formState.personalInfo.title,
+            email: formState.personalInfo.email,
+            phone: formState.personalInfo.phone,
+            location: formState.personalInfo.location,
+            professional_summary: formState.personalInfo.summary,
+            work_experience: formState.experience,
             education: formState.education,
             skills: formState.skills,
           }
-        });
+        ])
+        .select();
+
+      if (error) {
+        console.error('Error saving resume:', error);
         toast({
-          title: 'Resume updated',
-          description: 'Your resume has been successfully updated.'
+          title: 'Error',
+          description: 'Failed to save your resume. Please try again.',
+          variant: 'destructive'
         });
       } else {
-        const newResume = await createResume({
-          name: formState.name,
-          resume_data: {
-            personalInfo: formState.personalInfo,
-            experience: formState.experience,
-            education: formState.education,
-            skills: formState.skills,
-          },
-          is_primary: resumes.length === 0, // Make primary if first resume
-          template_id: null
-        });
-        setSelectedResumeId(newResume.id);
+        console.log('Resume saved:', data);
         toast({
           title: 'Resume created',
           description: 'Your resume has been successfully created.'
         });
+        setSelectedResumeId(data[0].id);
+        setActiveTab('preview');
       }
     } catch (error) {
       console.error('Error saving resume:', error);
@@ -257,295 +277,293 @@ export const ResumeBuilder = () => {
         </div>
       )}
 
-      {(selectedResume || selectedResumeId === null) && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="edit">Edit</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="edit" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  <Input 
-                    value={formState.name} 
-                    onChange={(e) => handleInputChange('name', '', e.target.value)} 
-                    className="text-xl font-bold"
-                    placeholder="Resume Name"
-                  />
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                {/* Personal Information */}
-                <div className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="edit">Edit</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="edit" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <Input 
+                  value={formState.name} 
+                  onChange={(e) => handleInputChange('name', '', e.target.value)} 
+                  className="text-xl font-bold"
+                  placeholder="Resume Name"
+                />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              {/* Personal Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <User className="h-5 w-5" /> Personal Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input 
+                      id="fullName" 
+                      value={formState.personalInfo.fullName} 
+                      onChange={(e) => handleInputChange('personalInfo', 'fullName', e.target.value)}
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Professional Title</Label>
+                    <Input 
+                      id="title" 
+                      value={formState.personalInfo.title} 
+                      onChange={(e) => handleInputChange('personalInfo', 'title', e.target.value)}
+                      placeholder="Software Developer"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={formState.personalInfo.email}
+                      onChange={(e) => handleInputChange('personalInfo', 'email', e.target.value)}
+                      placeholder="johndoe@example.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input 
+                      id="phone" 
+                      value={formState.personalInfo.phone}
+                      onChange={(e) => handleInputChange('personalInfo', 'phone', e.target.value)}
+                      placeholder="(123) 456-7890"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input 
+                      id="location" 
+                      value={formState.personalInfo.location}
+                      onChange={(e) => handleInputChange('personalInfo', 'location', e.target.value)}
+                      placeholder="San Francisco, CA"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="summary">Professional Summary</Label>
+                    <Textarea 
+                      id="summary" 
+                      value={formState.personalInfo.summary}
+                      onChange={(e) => handleInputChange('personalInfo', 'summary', e.target.value)}
+                      placeholder="A brief summary of your professional background and goals"
+                      rows={4}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Work Experience */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <User className="h-5 w-5" /> Personal Information
+                    <Briefcase className="h-5 w-5" /> Work Experience
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name</Label>
-                      <Input 
-                        id="fullName" 
-                        value={formState.personalInfo.fullName} 
-                        onChange={(e) => handleInputChange('personalInfo', 'fullName', e.target.value)}
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Professional Title</Label>
-                      <Input 
-                        id="title" 
-                        value={formState.personalInfo.title} 
-                        onChange={(e) => handleInputChange('personalInfo', 'title', e.target.value)}
-                        placeholder="Software Developer"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        value={formState.personalInfo.email}
-                        onChange={(e) => handleInputChange('personalInfo', 'email', e.target.value)}
-                        placeholder="johndoe@example.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input 
-                        id="phone" 
-                        value={formState.personalInfo.phone}
-                        onChange={(e) => handleInputChange('personalInfo', 'phone', e.target.value)}
-                        placeholder="(123) 456-7890"
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="location">Location</Label>
-                      <Input 
-                        id="location" 
-                        value={formState.personalInfo.location}
-                        onChange={(e) => handleInputChange('personalInfo', 'location', e.target.value)}
-                        placeholder="San Francisco, CA"
-                      />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="summary">Professional Summary</Label>
-                      <Textarea 
-                        id="summary" 
-                        value={formState.personalInfo.summary}
-                        onChange={(e) => handleInputChange('personalInfo', 'summary', e.target.value)}
-                        placeholder="A brief summary of your professional background and goals"
-                        rows={4}
-                      />
-                    </div>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => addListItem('experience')}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
                 </div>
-
-                {/* Work Experience */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Briefcase className="h-5 w-5" /> Work Experience
-                    </h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addListItem('experience')}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="h-4 w-4" /> Add
-                    </Button>
-                  </div>
-                  
-                  {formState.experience.map((exp, index) => (
-                    <Card key={index} className="relative">
-                      <CardHeader className="pb-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="absolute top-2 right-2"
-                          onClick={() => removeListItem('experience', index)}
-                          disabled={formState.experience.length === 1}
-                        >
-                          Remove
-                        </Button>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Company</Label>
-                            <Input 
-                              value={exp.company}
-                              onChange={(e) => handleInputChange('experience', 'company', e.target.value, index)}
-                              placeholder="Company Name"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Job Title</Label>
-                            <Input 
-                              value={exp.role}
-                              onChange={(e) => handleInputChange('experience', 'role', e.target.value, index)}
-                              placeholder="Job Title"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Start Date</Label>
-                            <Input 
-                              value={exp.startDate}
-                              onChange={(e) => handleInputChange('experience', 'startDate', e.target.value, index)}
-                              placeholder="Jan 2020"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>End Date</Label>
-                            <Input 
-                              value={exp.endDate}
-                              onChange={(e) => handleInputChange('experience', 'endDate', e.target.value, index)}
-                              placeholder="Present"
-                            />
-                          </div>
-                          <div className="space-y-2 md:col-span-2">
-                            <Label>Description</Label>
-                            <Textarea 
-                              value={exp.description}
-                              onChange={(e) => handleInputChange('experience', 'description', e.target.value, index)}
-                              placeholder="Describe your responsibilities and achievements"
-                              rows={3}
-                            />
-                          </div>
+                
+                {formState.experience.map((exp, index) => (
+                  <Card key={index} className="relative">
+                    <CardHeader className="pb-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="absolute top-2 right-2"
+                        onClick={() => removeListItem('experience', index)}
+                        disabled={formState.experience.length === 1}
+                      >
+                        Remove
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Company</Label>
+                          <Input 
+                            value={exp.company}
+                            onChange={(e) => handleInputChange('experience', 'company', e.target.value, index)}
+                            placeholder="Company Name"
+                          />
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Education */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <GraduationCap className="h-5 w-5" /> Education
-                    </h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addListItem('education')}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="h-4 w-4" /> Add
-                    </Button>
-                  </div>
-                  
-                  {formState.education.map((edu, index) => (
-                    <Card key={index} className="relative">
-                      <CardHeader className="pb-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="absolute top-2 right-2"
-                          onClick={() => removeListItem('education', index)}
-                          disabled={formState.education.length === 1}
-                        >
-                          Remove
-                        </Button>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Institution</Label>
-                            <Input 
-                              value={edu.institution}
-                              onChange={(e) => handleInputChange('education', 'institution', e.target.value, index)}
-                              placeholder="University or School Name"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Degree/Program</Label>
-                            <Input 
-                              value={edu.degree}
-                              onChange={(e) => handleInputChange('education', 'degree', e.target.value, index)}
-                              placeholder="Bachelor of Science in Computer Science"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Year</Label>
-                            <Input 
-                              value={edu.year}
-                              onChange={(e) => handleInputChange('education', 'year', e.target.value, index)}
-                              placeholder="2015 - 2019"
-                            />
-                          </div>
-                          <div className="space-y-2 md:col-span-2">
-                            <Label>Description</Label>
-                            <Textarea 
-                              value={edu.description}
-                              onChange={(e) => handleInputChange('education', 'description', e.target.value, index)}
-                              placeholder="Relevant coursework, honors, activities"
-                              rows={2}
-                            />
-                          </div>
+                        <div className="space-y-2">
+                          <Label>Job Title</Label>
+                          <Input 
+                            value={exp.role}
+                            onChange={(e) => handleInputChange('experience', 'role', e.target.value, index)}
+                            placeholder="Job Title"
+                          />
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {/* Skills */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">Skills</h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addListItem('skills')}
-                      className="flex items-center gap-1"
-                    >
-                      <Plus className="h-4 w-4" /> Add
-                    </Button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {formState.skills.map((skill, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Input 
-                          value={skill}
-                          onChange={(e) => handleInputChange('skills', '', e.target.value, index)}
-                          placeholder="JavaScript, React, SQL, etc."
-                        />
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => removeListItem('skills', index)}
-                          disabled={formState.skills.length === 1}
-                        >
-                          Remove
-                        </Button>
+                        <div className="space-y-2">
+                          <Label>Start Date</Label>
+                          <Input 
+                            value={exp.startDate}
+                            onChange={(e) => handleInputChange('experience', 'startDate', e.target.value, index)}
+                            placeholder="Jan 2020"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>End Date</Label>
+                          <Input 
+                            value={exp.endDate}
+                            onChange={(e) => handleInputChange('experience', 'endDate', e.target.value, index)}
+                            placeholder="Present"
+                          />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Description</Label>
+                          <Textarea 
+                            value={exp.description}
+                            onChange={(e) => handleInputChange('experience', 'description', e.target.value, index)}
+                            placeholder="Describe your responsibilities and achievements"
+                            rows={3}
+                          />
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Education */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" /> Education
+                  </h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => addListItem('education')}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button onClick={saveResume} className="ml-auto">Save Resume</Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="preview" className="space-y-6">
-            <Card>
-              <CardContent className="pt-6">
-                <ResumePreview resume={formState} />
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => setActiveTab('edit')}>
-                  Edit
-                </Button>
-                <Button>Download PDF</Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      )}
+                
+                {formState.education.map((edu, index) => (
+                  <Card key={index} className="relative">
+                    <CardHeader className="pb-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="absolute top-2 right-2"
+                        onClick={() => removeListItem('education', index)}
+                        disabled={formState.education.length === 1}
+                      >
+                        Remove
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Institution</Label>
+                          <Input 
+                            value={edu.institution}
+                            onChange={(e) => handleInputChange('education', 'institution', e.target.value, index)}
+                            placeholder="University or School Name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Degree/Program</Label>
+                          <Input 
+                            value={edu.degree}
+                            onChange={(e) => handleInputChange('education', 'degree', e.target.value, index)}
+                            placeholder="Bachelor of Science in Computer Science"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Year</Label>
+                          <Input 
+                            value={edu.year}
+                            onChange={(e) => handleInputChange('education', 'year', e.target.value, index)}
+                            placeholder="2015 - 2019"
+                          />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Description</Label>
+                          <Textarea 
+                            value={edu.description}
+                            onChange={(e) => handleInputChange('education', 'description', e.target.value, index)}
+                            placeholder="Relevant coursework, honors, activities"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Skills */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Skills</h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => addListItem('skills')}
+                    className="flex items-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {formState.skills.map((skill, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input 
+                        value={skill}
+                        onChange={(e) => handleInputChange('skills', '', e.target.value, index)}
+                        placeholder="JavaScript, React, SQL, etc."
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeListItem('skills', index)}
+                        disabled={formState.skills.length === 1}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={saveResume} className="ml-auto">Save Resume</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="preview" className="space-y-6">
+          <Card>
+            <CardContent className="pt-6">
+              <ResumePreview resume={formState} />
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setActiveTab('edit')}>
+                Edit
+              </Button>
+              <Button>Download PDF</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

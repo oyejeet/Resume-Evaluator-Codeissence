@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,7 @@ const analytics = {
 
 const RecruiterDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -155,7 +157,7 @@ const RecruiterDashboard = () => {
                 <Users size={16} />
                 Candidates
               </Button>
-              <Button size="sm" className="flex items-center gap-2">
+              <Button size="sm" className="flex items-center gap-2" onClick={() => navigate('/post-job')}>
                 <Plus size={16} />
                 Post Job
               </Button>

@@ -16,6 +16,10 @@ const JobSeekerDashboard = () => {
   const [savedJobs, setSavedJobs] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [dashboardTab, setDashboardTab] = useState("resume");
+  const [selectedResume, setSelectedResume] = useState(null);
+  const [selectedResumeId, setSelectedResumeId] = useState(null);
+  const [activeTab, setActiveTab] = useState('preview');
 
   // Redirect if not authenticated or if user is a recruiter
   if (!isLoading && (!isAuthenticated || isRecruiter)) {
@@ -120,7 +124,7 @@ const JobSeekerDashboard = () => {
             <p className="text-muted-foreground">Manage your job search and applications</p>
           </div>
           
-          <Tabs defaultValue="applications" className="space-y-8">
+          <Tabs defaultValue="applications" className="space-y-8" value={dashboardTab} onValueChange={setDashboardTab}>
             <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-2">
               <TabsTrigger value="applications" className="flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
@@ -255,7 +259,7 @@ const JobSeekerDashboard = () => {
             </TabsContent>
             
             <TabsContent value="resume" className="space-y-4">
-              <ResumeBuilder />
+              <ResumeBuilder onShowResumeTab={() => setDashboardTab("resume")} />
             </TabsContent>
           </Tabs>
         </div>

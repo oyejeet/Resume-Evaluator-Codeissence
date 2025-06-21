@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Briefcase, MapPin, DollarSign, Mail, FileText } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
 
-const JobPostForm = () => {
+const JobPostForm = ({ onJobPostSuccess }) => {
   const [formData, setFormData] = useState({
     title: '',
     company: '',
@@ -11,6 +12,8 @@ const JobPostForm = () => {
     contactEmail: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [skills, setSkills] = useState([]);
+  const [skillInput, setSkillInput] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,16 +23,51 @@ const JobPostForm = () => {
     }));
   };
 
+  const handleSkillInputChange = (e) => {
+    setSkillInput(e.target.value);
+  };
+
+  const handleAddSkill = (e) => {
+    e.preventDefault();
+    const trimmed = skillInput.trim();
+    if (trimmed && !skills.includes(trimmed)) {
+      setSkills([...skills, trimmed]);
+    }
+    setSkillInput("");
+  };
+
+  const handleSkillKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleAddSkill(e);
+    }
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setSkills(skills.filter(skill => skill !== skillToRemove));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // Simulated form submission
-      console.log('Submitting job post:', formData);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      // Insert job post into Supabase
+      const { data, error } = await supabase
+        .from('jobs')
+        .insert([
+          {
+            title: formData.title,
+            company: formData.company,
+            location: formData.location,
+            description: formData.description,
+            salary: formData.salary,
+            contact_email: formData.contactEmail,
+            skills: skills,
+          },
+        ])
+        .select();
+      if (error) {
+        throw error;
+      }
       alert('Job Post Created Successfully!');
       // Reset form after successful submission
       setFormData({
@@ -40,9 +78,14 @@ const JobPostForm = () => {
         salary: '',
         contactEmail: ''
       });
+      setSkills([]);
+      setSkillInput("");
+      if (onJobPostSuccess) {
+        onJobPostSuccess();
+      }
     } catch (error) {
       console.error('Error creating job post:', error);
-      alert('Failed to create job post');
+      alert('Failed to create job post: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,6 +185,48 @@ const JobPostForm = () => {
               required
               className="w-full pl-10 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
             />
+          </div>
+
+          <div>
+            <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-1">Skills</label>
+            <div className="flex gap-2">
+              <input
+                id="skills"
+                type="text"
+                value={skillInput}
+                onChange={handleSkillInputChange}
+                onKeyDown={handleSkillKeyDown}
+                placeholder="Add a skill and press Enter"
+                className="flex-1 pl-3 pr-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300"
+              />
+              <button
+                type="button"
+                onClick={handleAddSkill}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              >
+                Add
+              </button>
+            </div>
+            {/* Skills chips */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {skills.map((skill, idx) => (
+                <span
+                  key={skill}
+                  className="flex items-center bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm font-medium shadow-sm"
+                  style={{ borderRadius: '9999px' }}
+                >
+                  {skill}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSkill(skill)}
+                    className="ml-2 text-blue-500 hover:text-red-500 focus:outline-none"
+                    aria-label={`Remove ${skill}`}
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
 
           <button
