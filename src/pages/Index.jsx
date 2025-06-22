@@ -5,9 +5,59 @@ import { Input } from "@/components/ui/input";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
+import JobPlacard from "@/components/JobPlacard";
 import { Search, User, Building, ChevronRight, BriefcaseBusiness, Clock, Bell, Pencil, Calendar, Mail, Users, BarChart3, MapPin } from "lucide-react";
 
+const featuredJobsList = [
+  { 
+    id: "1",
+    title: "Senior Frontend Developer",
+    company: "TechCorp",
+    location: "San Francisco, CA",
+    type: "Full-time",
+    postedDate: "3 days ago",
+    description: "We're looking for a senior frontend developer with 5+ years of experience with React, TypeScript, and modern web technologies. You'll be responsible for building user interfaces for our enterprise products.",
+    salary: "$120K - $150K",
+    isNew: true,
+  },
+  { 
+    id: "2",
+    title: "Product Manager",
+    company: "InnovateTech",
+    location: "New York, NY",
+    type: "Full-time",
+    postedDate: "1 week ago",
+    description: "Join our product team to drive the strategy and development of our SaaS platform. You'll work closely with engineering, design, and marketing to ensure we're building the right product.",
+    salary: "$110K - $140K",
+  },
+  { 
+    id: "3",
+    title: "UX/UI Designer",
+    company: "DesignStudio",
+    location: "Remote",
+    type: "Remote",
+    postedDate: "2 days ago",
+    description: "We're seeking a skilled UX/UI designer to create beautiful, intuitive interfaces for our clients. You should have a strong portfolio and experience with Figma and design systems.",
+    salary: "$90K - $120K",
+    isNew: true,
+  },
+  { 
+    id: "4",
+    title: "Data Scientist",
+    company: "DataWorks",
+    location: "Chicago, IL",
+    type: "Contract",
+    postedDate: "5 days ago",
+    description: "Help us extract insights from data using statistical methods and machine learning. You should be proficient in Python, SQL, and have experience with data visualization tools.",
+    salary: "$100K - $130K",
+  }
+];
+
 const Index = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [isPlacardOpen, setIsPlacardOpen] = useState(false);
   // Animation on scroll effects
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -19,6 +69,33 @@ const Index = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleViewJob = (job) => {
+    setSelectedJob(job);
+    setIsPlacardOpen(true);
+  };
+
+  const handlePlacardClose = () => {
+    setIsPlacardOpen(false);
+    setSelectedJob(null);
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    // In a real app, you'd navigate to a search results page
+    // For this example, we're just filtering the list on the homepage
+    console.log("Searching for:", searchQuery, "in", locationQuery);
+  };
+  
+  const filteredJobs = featuredJobsList.filter(job => {
+    const queryMatch = (job.title + job.company + job.description)
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const locationMatch = job.location
+      .toLowerCase()
+      .includes(locationQuery.toLowerCase());
+    return queryMatch && locationMatch;
+  });
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -41,23 +118,10 @@ const Index = () => {
                 A free platform that bridges the gap between job seekers and recruiters, 
                 ensuring a seamless hiring experience for all.
               </p>
-              
-              <div className="flex flex-col md:flex-row gap-4 justify-center animate-slide-up" style={{ animationDelay: "0.2s" }}>
-                <Link to="/seeker-register">
-                  <Button size="lg" className="w-full md:w-auto">
-                    I'm a Job Seeker
-                  </Button>
-                </Link>
-                <Link to="/recruiter-register">
-                  <Button size="lg" variant="outline" className="w-full md:w-auto">
-                    I'm a Recruiter
-                  </Button>
-                </Link>
-              </div>
             </div>
             
             <div className="bg-white shadow-md rounded-xl p-4 max-w-4xl mx-auto glass animate-scale-in">
-              <form className="flex flex-col md:flex-row gap-3">
+              <form className="flex flex-col md:flex-row gap-3" onSubmit={handleSearch}>
                 <div className="flex-grow">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
@@ -65,6 +129,8 @@ const Index = () => {
                       type="text" 
                       placeholder="Job title, keywords, or company" 
                       className="pl-10 h-12"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
                 </div>
@@ -75,6 +141,8 @@ const Index = () => {
                       type="text" 
                       placeholder="Location" 
                       className="pl-10 h-12"
+                      value={locationQuery}
+                      onChange={(e) => setLocationQuery(e.target.value)}
                     />
                   </div>
                 </div>
@@ -97,51 +165,27 @@ const Index = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <JobCard 
-                id="1"
-                title="Senior Frontend Developer"
-                company="TechCorp"
-                location="San Francisco, CA"
-                type="Full-time"
-                postedDate="3 days ago"
-                description="We're looking for a senior frontend developer with 5+ years of experience with React, TypeScript, and modern web technologies. You'll be responsible for building user interfaces for our enterprise products."
-                salary="$120K - $150K"
-                isNew={true}
-              />
-              
-              <JobCard 
-                id="2"
-                title="Product Manager"
-                company="InnovateTech"
-                location="New York, NY"
-                type="Full-time"
-                postedDate="1 week ago"
-                description="Join our product team to drive the strategy and development of our SaaS platform. You'll work closely with engineering, design, and marketing to ensure we're building the right product."
-                salary="$110K - $140K"
-              />
-              
-              <JobCard 
-                id="3"
-                title="UX/UI Designer"
-                company="DesignStudio"
-                location="Remote"
-                type="Remote"
-                postedDate="2 days ago"
-                description="We're seeking a skilled UX/UI designer to create beautiful, intuitive interfaces for our clients. You should have a strong portfolio and experience with Figma and design systems."
-                salary="$90K - $120K"
-                isNew={true}
-              />
-              
-              <JobCard 
-                id="4"
-                title="Data Scientist"
-                company="DataWorks"
-                location="Chicago, IL"
-                type="Contract"
-                postedDate="5 days ago"
-                description="Help us extract insights from data using statistical methods and machine learning. You should be proficient in Python, SQL, and have experience with data visualization tools."
-                salary="$100K - $130K"
-              />
+              {filteredJobs.length > 0 ? (
+                filteredJobs.map(job => (
+                  <JobCard 
+                    key={job.id}
+                    id={job.id}
+                    title={job.title}
+                    company={job.company}
+                    location={job.location}
+                    type={job.type}
+                    postedDate={job.postedDate}
+                    description={job.description}
+                    salary={job.salary}
+                    isNew={job.isNew}
+                    onViewJob={() => handleViewJob(job)}
+                  />
+                ))
+              ) : (
+                <div className="col-span-1 md:col-span-2 text-center py-10">
+                  <p className="text-muted-foreground">No jobs found matching your criteria.</p>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -226,12 +270,6 @@ const Index = () => {
                     </div>
                   </div>
                 </div>
-                
-                <div className="mt-8">
-                  <Link to="/seeker-register">
-                    <Button>Get Started as Job Seeker</Button>
-                  </Link>
-                </div>
               </div>
               
               <div className="glass rounded-xl p-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
@@ -295,48 +333,37 @@ const Index = () => {
                       <BarChart3 size={20} />
                     </div>
                     <div>
-                      <h4 className="font-medium mb-1">Analytics & Performance Metrics</h4>
+                      <h4 className="font-medium mb-1">Gain Insights</h4>
                       <p className="text-sm text-muted-foreground">Gain insights from job post engagement and candidate activity</p>
                     </div>
                   </div>
-                </div>
-                
-                <div className="mt-8">
-                  <Link to="/recruiter-register">
-                    <Button>Get Started as Recruiter</Button>
-                  </Link>
                 </div>
               </div>
             </div>
           </div>
         </section>
         
-        {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-r from-primary/90 to-blue-500/90 text-white">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-2xl md:text-3xl font-semibold mb-4">Join Our Platform Today</h2>
-            <p className="text-lg mb-8 max-w-2xl mx-auto text-white/90">
-              Whether you're looking for your next career opportunity or searching for top talent,
-              FreeFlowJobs provides the tools you need to succeed.
+        {/* Call to Action Section */}
+        <section className="py-16 bg-primary">
+          <div className="container mx-auto px-4 text-center text-white">
+            <h2 className="text-3xl font-bold mb-4">Ready to find your next opportunity?</h2>
+            <p className="max-w-2xl mx-auto mb-8">
+              Join CareerCraft today and take the next step in your career. 
+              Our platform is free for everyone.
             </p>
-            
-            <div className="flex flex-col md:flex-row justify-center gap-4">
-              <Link to="/seeker-register">
-                <Button variant="secondary" size="lg">
-                  Sign Up as Job Seeker
-                </Button>
-              </Link>
-              <Link to="/recruiter-register">
-                <Button variant="outline" size="lg" className="text-white border-white/30 hover:bg-white/10">
-                  Sign Up as Recruiter
-                </Button>
-              </Link>
-            </div>
           </div>
         </section>
       </main>
       
       <Footer />
+
+      {isPlacardOpen && selectedJob && (
+        <JobPlacard
+          job={selectedJob}
+          isOpen={isPlacardOpen}
+          onClose={handlePlacardClose}
+        />
+      )}
     </div>
   );
 };
