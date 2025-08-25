@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
 // Mock data for job listings
 const jobListings = [
@@ -138,7 +139,95 @@ const analytics = {
 
 const RecruiterDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [postedJobs, setPostedJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [jobApplicants, setJobApplicants] = useState([]);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
   const navigate = useNavigate();
+
+  // Fetch posted jobs from Supabase
+  useEffect(() => {
+    const fetchPostedJobs = async () => {
+      try {
+        setLoading(true);
+        const { data: jobs, error } = await supabase
+          .from('jobs')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching jobs:', error);
+          setError(error.message);
+        } else {
+          setPostedJobs(jobs || []);
+        }
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+        setError('Failed to fetch jobs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPostedJobs();
+  }, []);
+
+  // Function to fetch applicants for a specific job
+  const fetchJobApplicants = async (jobId) => {
+    try {
+      setLoadingApplicants(true);
+      
+      // First, fetch applications for the job
+      const { data: applications, error: applicationsError } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('job_id', jobId);
+
+      if (applicationsError) {
+        console.error('Error fetching applications:', applicationsError);
+        setError(applicationsError.message);
+        return;
+      }
+
+      if (applications && applications.length > 0) {
+        // Get all applicant IDs
+        const applicantIds = applications.map(app => app.applicant_id);
+        
+        // Fetch profiles for all applicants
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', applicantIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          setError(profilesError.message);
+          return;
+        }
+
+        // Combine applications with profile data
+        const applicationsWithProfiles = applications.map(application => {
+          const profile = profiles.find(p => p.id === application.applicant_id);
+          return {
+            ...application,
+            applicant: profile || null
+          };
+        });
+
+        console.log('Applications with profiles:', applicationsWithProfiles);
+        setJobApplicants(applicationsWithProfiles);
+      } else {
+        setJobApplicants([]);
+      }
+    } catch (err) {
+      console.error('Error fetching job applicants:', err);
+      setError('Failed to fetch job applicants');
+    } finally {
+      setLoadingApplicants(false);
+    }
+  };
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -273,66 +362,165 @@ const RecruiterDashboard = () => {
                   </div>
                   
                   <div className="space-y-4">
-                    {jobListings.slice(0, 3).map((job) => (
-                      <div key={job.id} className="flex flex-col md:flex-row justify-between p-4 border border-border rounded-lg hover:bg-secondary/20 transition-colors">
-                        <div className="mb-4 md:mb-0">
-                          <h4 className="font-medium mb-1">{job.title}</h4>
-                          <div className="flex flex-wrap items-center text-sm text-muted-foreground gap-3">
-                            <span>{job.location}</span>
-                            <span>•</span>
-                            <span>{job.type}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap items-center gap-4">
-                          <div className="flex items-center">
-                            <Users size={16} className="text-muted-foreground mr-1" />
-                            <span className="text-sm">{job.applicants} applicants</span>
-                          </div>
-                          <Badge className={job.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                            {job.status}
-                          </Badge>
-                          <Button variant="outline" size="sm">View</Button>
-                        </div>
+                    {loading ? (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-muted-foreground mt-2">Loading jobs...</p>
                       </div>
-                    ))}
+                    ) : error ? (
+                      <div className="text-center py-4">
+                        <p className="text-red-500">Error: {error}</p>
+                      </div>
+                    ) : postedJobs.length === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground">No jobs posted yet</p>
+                      </div>
+                    ) : (
+                      postedJobs.slice(0, 3).map((job) => (
+                        <div key={job.id} className="flex flex-col md:flex-row justify-between p-4 border border-border rounded-lg hover:bg-secondary/20 transition-colors">
+                          <div className="mb-4 md:mb-0">
+                            <h4 className="font-medium mb-1">{job.title}</h4>
+                            <div className="flex flex-wrap items-center text-sm text-muted-foreground gap-3">
+                              <span>{job.location}</span>
+                              <span>•</span>
+                              <span>{job.job_type || 'Full-time'}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-4">
+                            <div className="flex items-center">
+                              <Users size={16} className="text-muted-foreground mr-1" />
+                              <span className="text-sm">{job.applications_count || 0} applicants</span>
+                            </div>
+                            <Badge className={job.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                              {job.status || 'Active'}
+                            </Badge>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedJob(job);
+                                fetchJobApplicants(job.id);
+                              }}
+                            >
+                              View
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
                 
                 <div className="glass rounded-xl p-6">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-semibold">Recent Candidates</h3>
-                    <Button variant="ghost" size="sm" className="text-primary">
-                      View All
-                    </Button>
+                    <h3 className="text-lg font-semibold">
+                      {selectedJob ? `Candidates for ${selectedJob.title}` : 'Recent Candidates'}
+                    </h3>
+                    {selectedJob && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-primary"
+                        onClick={() => {
+                          setSelectedJob(null);
+                          setJobApplicants([]);
+                        }}
+                      >
+                        Show All
+                      </Button>
+                    )}
+                    {!selectedJob && (
+                      <Button variant="ghost" size="sm" className="text-primary">
+                        View All
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="space-y-4">
-                    {candidates.slice(0, 3).map((candidate) => (
-                      <div key={candidate.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-secondary/20 transition-colors">
-                        <div className="flex items-center">
-                          <Avatar className="h-10 w-10 mr-3">
-                            <AvatarImage src={candidate.avatar} alt={candidate.name} />
-                            <AvatarFallback>{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h4 className="font-medium">{candidate.name}</h4>
-                            <p className="text-sm text-muted-foreground">Applied for {candidate.appliedFor}</p>
+                    {selectedJob ? (
+                      // Show applicants for selected job
+                      loadingApplicants ? (
+                        <div className="text-center py-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                          <p className="text-muted-foreground mt-2">Loading applicants...</p>
+                        </div>
+                      ) : jobApplicants.length === 0 ? (
+                        <div className="text-center py-4">
+                          <p className="text-muted-foreground">No applicants for this job yet</p>
+                        </div>
+                      ) : (
+                        jobApplicants.slice(0, 3).map((application) => {
+                          const applicant = application.applicant;
+                          const applicantName = applicant?.full_name || applicant?.name || 'Unknown Applicant';
+                          const initials = applicantName !== 'Unknown Applicant' 
+                            ? applicantName.split(' ').map(n => n[0]).join('') 
+                            : 'U';
+                          
+                          return (
+                            <div key={application.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-secondary/20 transition-colors">
+                              <div className="flex items-center">
+                                <Avatar className="h-10 w-10 mr-3">
+                                  <AvatarImage src={applicant?.avatar_url} alt={applicantName} />
+                                  <AvatarFallback>{initials}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <h4 className="font-medium">{applicantName}</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    Applied on {new Date(application.created_at).toLocaleDateString()}
+                                    {applicant?.email && (
+                                      <span className="block text-xs text-muted-foreground">
+                                        {applicant.email}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <Badge className={
+                                  application.status === 'Pending' ? 'bg-blue-100 text-blue-800' : 
+                                  application.status === 'Reviewed' ? 'bg-purple-100 text-purple-800' : 
+                                  application.status === 'Accepted' ? 'bg-green-100 text-green-800' :
+                                  application.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-amber-100 text-amber-800'
+                                }>
+                                  {application.status}
+                                </Badge>
+                                <Button variant="outline" size="sm">View Profile</Button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )
+                    ) : (
+                      // Show default candidates
+                      candidates.slice(0, 3).map((candidate) => (
+                        <div key={candidate.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-secondary/20 transition-colors">
+                          <div className="flex items-center">
+                            <Avatar className="h-10 w-10 mr-3">
+                              <AvatarImage src={candidate.avatar} alt={candidate.name} />
+                              <AvatarFallback>{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h4 className="font-medium">{candidate.name}</h4>
+                              <p className="text-sm text-muted-foreground">Applied for {candidate.appliedFor}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Badge className={
+                              candidate.status === 'New' ? 'bg-blue-100 text-blue-800' : 
+                              candidate.status === 'Reviewed' ? 'bg-purple-100 text-purple-800' : 
+                              'bg-amber-100 text-amber-800'
+                            }>
+                              {candidate.status}
+                            </Badge>
+                            <Button variant="outline" size="sm">View</Button>
                           </div>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Badge className={
-                            candidate.status === 'New' ? 'bg-blue-100 text-blue-800' : 
-                            candidate.status === 'Reviewed' ? 'bg-purple-100 text-purple-800' : 
-                            'bg-amber-100 text-amber-800'
-                          }>
-                            {candidate.status}
-                          </Badge>
-                          <Button variant="outline" size="sm">View</Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -377,43 +565,66 @@ const RecruiterDashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {jobListings.map((job) => (
-                        <tr key={job.id} className="border-b hover:bg-secondary/10">
-                          <td className="p-4">{job.title}</td>
-                          <td className="p-4">{job.location}</td>
-                          <td className="p-4">{job.type}</td>
-                          <td className="p-4">{job.datePosted}</td>
-                          <td className="p-4">
-                            <div className="flex items-center">
-                              <Users size={16} className="mr-2 text-muted-foreground" />
-                              {job.applicants}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Badge className={job.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                              {job.status}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  Actions
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>View Applicants</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Job</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-500">
-                                  {job.status === 'Active' ? 'Close Job' : 'Delete Job'}
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                      {loading ? (
+                        <tr>
+                          <td colSpan="7" className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                            <p className="text-muted-foreground mt-2">Loading jobs...</p>
                           </td>
                         </tr>
-                      ))}
+                      ) : error ? (
+                        <tr>
+                          <td colSpan="7" className="text-center py-8">
+                            <p className="text-red-500">Error: {error}</p>
+                          </td>
+                        </tr>
+                      ) : postedJobs.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="text-center py-8">
+                            <p className="text-muted-foreground">No jobs posted yet</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        postedJobs.map((job) => (
+                          <tr key={job.id} className="border-b hover:bg-secondary/10">
+                            <td className="p-4">{job.title}</td>
+                            <td className="p-4">{job.location}</td>
+                            <td className="p-4">{job.job_type || 'Full-time'}</td>
+                            <td className="p-4">
+                              {job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center">
+                                <Users size={16} className="mr-2 text-muted-foreground" />
+                                {job.applications_count || 0}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <Badge className={job.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                                {job.status || 'Active'}
+                              </Badge>
+                            </td>
+                            <td className="p-4">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    Actions
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem>View Details</DropdownMenuItem>
+                                  <DropdownMenuItem>View Applicants</DropdownMenuItem>
+                                  <DropdownMenuItem>Edit Job</DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-red-500">
+                                    {job.status === 'active' ? 'Close Job' : 'Delete Job'}
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

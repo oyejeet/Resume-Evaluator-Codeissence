@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import JobPlacard from "@/components/JobPlacard";
 
 const JobSeekerDashboard = () => {
   const { isAuthenticated, isLoading, user, isRecruiter } = useAuth();
+  const navigate = useNavigate();
   const [savedJobs, setSavedJobs] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -53,9 +54,7 @@ const JobSeekerDashboard = () => {
   };
 
   // Redirect if not authenticated or if user is a recruiter
-  if (!isLoading && (!isAuthenticated || isRecruiter)) {
-    return <Navigate to="/auth" replace />;
-  }
+  // Note: This check is moved after all hooks to prevent "Rendered fewer hooks than expected" error
 
   useEffect(() => {
     if (!user) return;
@@ -119,44 +118,47 @@ const JobSeekerDashboard = () => {
     fetchDashboardData();
 
     // Set up realtime subscription for saved jobs and applications
-    const savedJobsChannel = supabase
-      .channel('saved_jobs_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'saved_jobs',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          // Refetch saved jobs when changes occur
-          fetchDashboardData();
-        }
-      )
-      .subscribe();
+    // Only set up subscriptions if user exists
+    if (user) {
+      const savedJobsChannel = supabase
+        .channel('saved_jobs_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'saved_jobs',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            // Refetch saved jobs when changes occur
+            fetchDashboardData();
+          }
+        )
+        .subscribe();
 
-    const applicationsChannel = supabase
-      .channel('applications_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'applications',
-          filter: `applicant_id=eq.${user.id}`,
-        },
-        () => {
-          // Refetch applications when changes occur
-          fetchDashboardData();
-        }
-      )
-      .subscribe();
+      const applicationsChannel = supabase
+        .channel('applications_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'applications',
+            filter: `applicant_id=eq.${user.id}`,
+          },
+          () => {
+            // Refetch applications when changes occur
+            fetchDashboardData();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(savedJobsChannel);
-      supabase.removeChannel(applicationsChannel);
-    };
+      return () => {
+        supabase.removeChannel(savedJobsChannel);
+        supabase.removeChannel(applicationsChannel);
+      };
+    }
   }, [user]);
 
   useEffect(() => {
@@ -205,15 +207,12 @@ const JobSeekerDashboard = () => {
     fetchJobsForApplications();
   }, [user]);
 
-  useEffect(() => {
-    async function testFetch() {
-      const { data, error } = await supabase
-        .from('applications')
-        .select('*');
-      console.log('Test fetch applications:', JSON.stringify(data, null, 2));
-    }
-    testFetch();
-  }, []);
+
+
+  // Redirect if not authenticated or if user is a recruiter
+  if (!isLoading && (!isAuthenticated || isRecruiter)) {
+    return <Navigate to="/auth" replace />;
+  }
 
   if (isLoading || !user) {
     return (
@@ -395,19 +394,7 @@ const JobSeekerDashboard = () => {
             </TabsContent>
           </Tabs>
 
-          <div className="mt-8">
-            <Button 
-              onClick={async () => {
-                const { data, error } = await supabase
-                  .from('applications')
-                  .select('*');
-                console.log('Test fetch applications:', JSON.stringify(data, null, 2));
-              }}
-              className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800"
-            >
-              Test Fetch Applications
-            </Button>
-          </div>
+
         </div>
       </main>
       

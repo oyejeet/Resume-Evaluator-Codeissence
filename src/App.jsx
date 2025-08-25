@@ -25,8 +25,8 @@ const ProtectedRoute = ({
 }) => {
   const { isAuthenticated, isLoading, isRecruiter } = useAuth();
   
+  // Show loading state while checking auth
   if (isLoading) {
-    // Show loading state while checking auth
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-pulse text-center">
@@ -37,13 +37,15 @@ const ProtectedRoute = ({
     );
   }
   
-  // Redirect logic based on authentication and role
-  if (requiresAuth && !isAuthenticated) {
-    return <Navigate to={fallbackPath} replace />;
-  }
-  
-  if (requiresRecruiter && !isRecruiter) {
-    return <Navigate to="/job-seeker-dashboard" replace />;
+  // Only redirect if we're not loading and the conditions are not met
+  if (!isLoading) {
+    if (requiresAuth && !isAuthenticated) {
+      return <Navigate to={fallbackPath} replace />;
+    }
+    
+    if (requiresRecruiter && !isRecruiter) {
+      return <Navigate to="/job-seeker-dashboard" replace />;
+    }
   }
   
   // If all conditions are met, render the element
