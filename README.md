@@ -115,6 +115,61 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser to view the project.
 
+### Supabase setup
+
+This project can use Supabase to store and share job posts between admin and users.
+
+Add the following environment variables (create a `.env` in the project root or use your shell):
+
+```
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Create the tables in your Supabase project:
+
+```sql
+-- Jobs table
+create table if not exists public.jobs (
+  id uuid primary key,
+  title text not null,
+  company text not null,
+  location text,
+  description text not null,
+  created_at timestamptz not null default now()
+);
+
+-- Optional: user actions on jobs
+create table if not exists public.job_actions (
+  id uuid primary key,
+  job_id uuid not null references public.jobs(id) on delete cascade,
+  applied boolean not null,
+  created_at timestamptz not null default now()
+);
+```
+
+Anon read/write policies (for quick local testing only; harden for production):
+
+```sql
+-- Enable RLS
+alter table public.jobs enable row level security;
+alter table public.job_actions enable row level security;
+
+-- Public read jobs
+create policy "read jobs" on public.jobs for select using (true);
+
+-- Allow inserts/deletes for admins during dev (consider restricting by JWT claims)
+create policy "insert jobs" on public.jobs for insert with check (true);
+create policy "delete jobs" on public.jobs for delete using (true);
+
+-- Allow recording actions
+create policy "insert actions" on public.job_actions for insert with check (true);
+```
+
+Routes affected:
+- `app/routes/admin.tsx`: creates, lists, deletes jobs via Supabase
+- `app/routes/jobs.tsx`: lists jobs and records swipe actions via Supabase
+
 ## <a name="links">🔗 Assets</a>
 
 Assets and snippets used in the project can be found in the **[video kit](https://jsm.dev/resumind-kit)**.

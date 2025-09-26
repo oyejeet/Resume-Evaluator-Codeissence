@@ -2,7 +2,7 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {AnimatePresence, motion, useMotionValue, useTransform} from "framer-motion";
 import type { Route } from "./+types/jobs";
 import Navbar from "~/components/Navbar";
-import {usePuterStore} from "~/lib/puter";
+import {supabase} from "~/lib/supabase";
 
 type Job = {
     id: string;
@@ -21,7 +21,6 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function JobsSwipe() {
-    const { kv } = usePuterStore();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [index, setIndex] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -36,48 +35,76 @@ export default function JobsSwipe() {
     useEffect(()=>{
         const load = async () => {
             setLoading(true);
-            const items = (await kv.list('job:*', true)) as KVItem[] | undefined;
-            const parsed = (items || []).map(i => JSON.parse(i.value) as Job).sort((a,b)=>b.createdAt-a.createdAt);
-            setJobs(parsed);
+            const { data, error } = await supabase
+                .from('jobs')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) {
+                // eslint-disable-next-line no-console
+                console.error('Failed to load jobs', error);
+                setJobs([]);
+            } else {
+                const parsed: Job[] = (data || []).map((row: any) => ({
+                    id: row.id,
+                    title: row.title,
+                    company: row.company,
+                    location: row.location || undefined,
+                    description: row.description,
+                    createdAt: row.created_at ? Date.parse(row.created_at) : 0,
+                }));
+                setJobs(parsed);
+            }
             setLoading(false);
         };
         load();
     }, [])
 
+    useEffect(()=>{
+        const channel = supabase
+            .channel('jobs-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+                // Refresh list on any job change
+                (async () => {
+                    const { data } = await supabase.from('jobs').select('*').order('created_at', { ascending: false });
+                    const parsed: Job[] = (data || []).map((row: any) => ({
+                        id: row.id,
+                        title: row.title,
+                        company: row.company,
+                        location: row.location || undefined,
+                        description: row.description,
+                        createdAt: row.created_at ? Date.parse(row.created_at) : 0,
+                    }));
+                    setJobs(parsed);
+                })();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [])
+
     const job = jobs[index];
 
     const seedDemoJobs = async () => {
-        const demo: Job[] = [
-            {
-                id: crypto.randomUUID(),
-                title: 'Frontend Engineer',
-                company: 'Resumind Inc.',
-                location: 'Remote',
-                description: 'Build delightful UIs in React, focus on performance and accessibility. Experience with TypeScript and Vite is a plus.',
-                createdAt: Date.now(),
-            },
-            {
-                id: crypto.randomUUID(),
-                title: 'Backend Developer',
-                company: 'DataCloud',
-                location: 'NYC, Hybrid',
-                description: 'Design APIs, work with Node.js and PostgreSQL, implement observability and caching best practices.',
-                createdAt: Date.now() - 1000,
-            },
-            {
-                id: crypto.randomUUID(),
-                title: 'Mobile Engineer (React Native)',
-                company: 'GoMobile',
-                location: 'Remote',
-                description: 'Ship high-quality features on iOS/Android using React Native. Familiar with native modules and app store releases.',
-                createdAt: Date.now() - 2000,
-            },
+        const demo = [
+            { id: crypto.randomUUID(), title: 'Frontend Engineer', company: 'Resumind Inc.', location: 'Remote', description: 'Build delightful UIs in React, focus on performance and accessibility. Experience with TypeScript and Vite is a plus.' },
+            { id: crypto.randomUUID(), title: 'Backend Developer', company: 'DataCloud', location: 'NYC, Hybrid', description: 'Design APIs, work with Node.js and PostgreSQL, implement observability and caching best practices.' },
+            { id: crypto.randomUUID(), title: 'Mobile Engineer (React Native)', company: 'GoMobile', location: 'Remote', description: 'Ship high-quality features on iOS/Android using React Native. Familiar with native modules and app store releases.' },
         ];
-        for (const j of demo) {
-            await kv.set(`job:${j.id}`, JSON.stringify(j));
-        }
-        const items = (await kv.list('job:*', true)) as KVItem[] | undefined;
-        const parsed = (items || []).map(i => JSON.parse(i.value) as Job).sort((a,b)=>b.createdAt-a.createdAt);
+        await supabase.from('jobs').insert(demo.map(d => ({
+            id: d.id,
+            title: d.title,
+            company: d.company,
+            location: d.location,
+            description: d.description,
+        })));
+        const { data } = await supabase.from('jobs').select('*').order('created_at', { ascending: false });
+        const parsed: Job[] = (data || []).map((row: any) => ({
+            id: row.id,
+            title: row.title,
+            company: row.company,
+            location: row.location || undefined,
+            description: row.description,
+            createdAt: row.created_at ? Date.parse(row.created_at) : 0,
+        }));
         setJobs(parsed);
         setIndex(0);
     }
@@ -87,7 +114,11 @@ export default function JobsSwipe() {
         const applied = direction === 'right';
         setStatus(applied ? 'Applied' : 'Rejected');
         try {
-            await kv.set(`job-action:${job.id}`, JSON.stringify({ id: job.id, applied, ts: Date.now() }));
+            await supabase.from('job_actions').insert({
+                id: crypto.randomUUID(),
+                job_id: job.id,
+                applied,
+            });
         } finally {
             setTimeout(()=>{
                 setStatus(null);
