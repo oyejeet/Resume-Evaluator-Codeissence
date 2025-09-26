@@ -387,7 +387,24 @@ export const usePuterStore = create<PuterStore>((set, get) => {
             setError("Puter.js not available");
             return;
         }
-        return puter.kv.delete(key);
+        const kvAny = puter.kv as unknown as Record<string, any>;
+        try {
+            if (typeof kvAny.delete === 'function') return await kvAny.delete(key);
+            if (typeof kvAny.remove === 'function') return await kvAny.remove(key);
+            if (typeof kvAny.del === 'function') return await kvAny.del(key);
+            if (typeof kvAny.unset === 'function') return await kvAny.unset(key);
+        } catch (_) {
+            // fallthrough to tombstone
+        }
+        // Tombstone fallback if no delete method available
+        try {
+            await puter.kv.set(key, '"__DELETED__"');
+            return true;
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'KV delete failed';
+            setError(msg);
+            return false;
+        }
     };
 
     const listKV = async (pattern: string, returnValues?: boolean) => {

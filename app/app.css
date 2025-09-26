@@ -24,7 +24,7 @@ body {
 }
 
 main {
-  @apply min-h-screen pt-10;
+  @apply min-h-screen pt-10 pb-24;
 }
 h1 {
   @apply text-6xl  text-gradient leading-tight tracking-[-2px] font-semibold;

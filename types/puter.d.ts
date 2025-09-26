@@ -49,6 +49,17 @@ interface PuterChatOptions {
     };
 }
 
+// Some environments expose different KV delete method names
+interface PuterKVCompat {
+    get: (key: string) => Promise<string | null>;
+    set: (key: string, value: string) => Promise<boolean>;
+    list: (pattern: string, returnValues?: boolean) => Promise<string[]>;
+    delete?: (key: string) => Promise<boolean>;
+    remove?: (key: string) => Promise<boolean>;
+    del?: (key: string) => Promise<boolean>;
+    unset?: (key: string) => Promise<boolean>;
+}
+
 interface AIResponse {
     index: number;
     message: {
