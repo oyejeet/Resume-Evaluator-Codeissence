@@ -1,8 +1,8 @@
-import {useEffect, useMemo, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 import {AnimatePresence, motion, useMotionValue, useTransform} from "framer-motion";
 import type { Route } from "./+types/jobs";
 import Navbar from "~/components/Navbar";
-import {usePuterStore} from "~/lib/puter";
+import {supabase} from "~/lib/supabase";
 
 type Job = {
     id: string;
@@ -11,6 +11,10 @@ type Job = {
     location?: string;
     description: string;
     createdAt: number;
+    jobType?: string | null;      // UPDATED
+    salary?: string | null;       // UPDATED
+    contactEmail?: string | null; // UPDATED
+    skills?: string[] | null;     // UPDATED
 };
 
 export function meta({}: Route.MetaArgs) {
@@ -21,7 +25,6 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function JobsSwipe() {
-    const { kv } = usePuterStore();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [index, setIndex] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -36,48 +39,83 @@ export default function JobsSwipe() {
     useEffect(()=>{
         const load = async () => {
             setLoading(true);
-            const items = (await kv.list('job:*', true)) as KVItem[] | undefined;
-            const parsed = (items || []).map(i => JSON.parse(i.value) as Job).sort((a,b)=>b.createdAt-a.createdAt);
-            setJobs(parsed);
+            const { data, error } = await supabase
+                .from('jobs')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) {
+                console.error('Failed to load jobs', error);
+                setJobs([]);
+            } else {
+                const parsed: Job[] = (data || []).map((row: any) => ({
+                    id: row.id,
+                    title: row.title,
+                    company: row.company,
+                    location: row.location || undefined,
+                    description: row.description,
+                    createdAt: row.created_at ? Date.parse(row.created_at) : 0,
+                    jobType: row.job_type,           // UPDATED
+                    salary: row.salary,              // UPDATED
+                    contactEmail: row.contact_email, // UPDATED
+                    skills: row.skills,              // UPDATED
+                }));
+                setJobs(parsed);
+            }
             setLoading(false);
         };
         load();
     }, [])
 
+    useEffect(()=>{
+        const channel = supabase
+            .channel('jobs-changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => {
+                (async () => {
+                    const { data } = await supabase
+                        .from('jobs')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    const parsed: Job[] = (data || []).map((row: any) => ({
+                        id: row.id,
+                        title: row.title,
+                        company: row.company,
+                        location: row.location || undefined,
+                        description: row.description,
+                        createdAt: row.created_at ? Date.parse(row.created_at) : 0,
+                        jobType: row.job_type,           // UPDATED
+                        salary: row.salary,              // UPDATED
+                        contactEmail: row.contact_email, // UPDATED
+                        skills: row.skills,              // UPDATED
+                    }));
+                    setJobs(parsed);
+                })();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [])
+
     const job = jobs[index];
 
     const seedDemoJobs = async () => {
-        const demo: Job[] = [
-            {
-                id: crypto.randomUUID(),
-                title: 'Frontend Engineer',
-                company: 'Resumind Inc.',
-                location: 'Remote',
-                description: 'Build delightful UIs in React, focus on performance and accessibility. Experience with TypeScript and Vite is a plus.',
-                createdAt: Date.now(),
-            },
-            {
-                id: crypto.randomUUID(),
-                title: 'Backend Developer',
-                company: 'DataCloud',
-                location: 'NYC, Hybrid',
-                description: 'Design APIs, work with Node.js and PostgreSQL, implement observability and caching best practices.',
-                createdAt: Date.now() - 1000,
-            },
-            {
-                id: crypto.randomUUID(),
-                title: 'Mobile Engineer (React Native)',
-                company: 'GoMobile',
-                location: 'Remote',
-                description: 'Ship high-quality features on iOS/Android using React Native. Familiar with native modules and app store releases.',
-                createdAt: Date.now() - 2000,
-            },
+        const demo = [
+            { id: crypto.randomUUID(), title: 'Frontend Engineer', company: 'Resumind Inc.', location: 'Remote', description: 'Build delightful UIs in React, focus on performance and accessibility.', job_type: 'Full-time', salary: '120000', contact_email: 'hr@resumind.com', skills: ['React', 'TypeScript'] }, // UPDATED
+            { id: crypto.randomUUID(), title: 'Backend Developer', company: 'DataCloud', location: 'NYC, Hybrid', description: 'Design APIs, work with Node.js and PostgreSQL.', job_type: 'Hybrid', salary: '110000', contact_email: 'jobs@datacloud.com', skills: ['Node.js', 'Postgres'] }, // UPDATED
+            { id: crypto.randomUUID(), title: 'Mobile Engineer (React Native)', company: 'GoMobile', location: 'Remote', description: 'Ship high-quality features on iOS/Android.', job_type: 'Remote', salary: '100000', contact_email: 'careers@gomobile.com', skills: ['React Native', 'iOS', 'Android'] }, // UPDATED
         ];
-        for (const j of demo) {
-            await kv.set(`job:${j.id}`, JSON.stringify(j));
-        }
-        const items = (await kv.list('job:*', true)) as KVItem[] | undefined;
-        const parsed = (items || []).map(i => JSON.parse(i.value) as Job).sort((a,b)=>b.createdAt-a.createdAt);
+        await supabase.from('jobs').insert(demo);
+        const { data } = await supabase.from('jobs').select('*').order('created_at', { ascending: false });
+        const parsed: Job[] = (data || []).map((row: any) => ({
+            id: row.id,
+            title: row.title,
+            company: row.company,
+            location: row.location || undefined,
+            description: row.description,
+            createdAt: row.created_at ? Date.parse(row.created_at) : 0,
+            jobType: row.job_type,           // UPDATED
+            salary: row.salary,              // UPDATED
+            contactEmail: row.contact_email, // UPDATED
+            skills: row.skills,              // UPDATED
+        }));
         setJobs(parsed);
         setIndex(0);
     }
@@ -87,7 +125,11 @@ export default function JobsSwipe() {
         const applied = direction === 'right';
         setStatus(applied ? 'Applied' : 'Rejected');
         try {
-            await kv.set(`job-action:${job.id}`, JSON.stringify({ id: job.id, applied, ts: Date.now() }));
+            await supabase.from('job_actions').insert({
+                id: crypto.randomUUID(),
+                job_id: job.id,
+                applied,
+            });
         } finally {
             setTimeout(()=>{
                 setStatus(null);
@@ -99,7 +141,7 @@ export default function JobsSwipe() {
     
     const handleDragEnd = (_: any, info: { velocity: { x: number, y: number }, offset: { x: number, y: number } }) => {
         const threshold = 140;
-        const velocityThreshold = 700; // px/s
+        const velocityThreshold = 700;
         const dx = info.offset.x;
         const vx = info.velocity.x;
         let decided: 'left' | 'right' | null = null;
@@ -124,7 +166,7 @@ export default function JobsSwipe() {
                 {!loading && jobs.length === 0 && <p>No jobs available.</p>}
 
                 {!loading && job && (
-                    <div className="relative w-full max-w-md h-[520px]">
+                    <div className="relative w-full max-w-md h-[560px]"> {/* UPDATED: increased height for new fields */}
                         <AnimatePresence initial={false}>
                             {[0,1,2].map((offset)=>{
                                 const j = jobs[index + offset];
@@ -151,7 +193,16 @@ export default function JobsSwipe() {
                                             <p className="text-2xl font-semibold">{j.title}</p>
                                             <span className="text-dark-200">{j.company}{j.location ? ` • ${j.location}`: ''}</span>
                                         </div>
-                                        <div className="h-[360px] overflow-auto pr-2">
+                                        {/* UPDATED: show job details */}
+                                        <div className="text-sm text-gray-500 mb-2">
+                                            {j.jobType && <p><strong>Type:</strong> {j.jobType}</p>}
+                                            {j.salary && <p><strong>Salary:</strong> {j.salary}</p>}
+                                            {j.contactEmail && <p><strong>Email:</strong> {j.contactEmail}</p>}
+                                            {j.skills && j.skills.length > 0 && (
+                                                <p><strong>Skills:</strong> {j.skills.join(", ")}</p>
+                                            )}
+                                        </div>
+                                        <div className="h-[320px] overflow-auto pr-2">
                                             <p className="text-dark-200 whitespace-pre-wrap leading-relaxed">{j.description}</p>
                                         </div>
 
@@ -194,5 +245,3 @@ export default function JobsSwipe() {
         </main>
     )
 }
-
-

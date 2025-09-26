@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
 import type { Route } from "./+types/admin";
 import Navbar from "~/components/Navbar";
-import {usePuterStore} from "~/lib/puter";
+import {supabase} from "~/lib/supabase";
 
 type Job = {
     id: string;
@@ -20,15 +20,30 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function AdminJobs() {
-    const {auth, kv} = usePuterStore();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(false);
 
     const loadJobs = async () => {
         setLoading(true);
-        const items = (await kv.list('job:*', true)) as KVItem[] | undefined;
-        const parsed = (items || []).map(i => JSON.parse(i.value) as Job).sort((a,b)=>b.createdAt-a.createdAt);
-        setJobs(parsed);
+        const { data, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) {
+            // eslint-disable-next-line no-console
+            console.error('Failed to load jobs', error);
+            setJobs([]);
+        } else {
+            const parsed: Job[] = (data || []).map((row: any) => ({
+                id: row.id,
+                title: row.title,
+                company: row.company,
+                location: row.location || undefined,
+                description: row.description,
+                createdAt: row.created_at ? Date.parse(row.created_at) : 0,
+            }));
+            setJobs(parsed);
+        }
         setLoading(false);
     }
 
@@ -38,15 +53,18 @@ export default function AdminJobs() {
         e.preventDefault();
         const data = new FormData(e.currentTarget);
         const id = crypto.randomUUID();
-        const job: Job = {
+        const payload = {
             id,
             title: String(data.get('title')||''),
             company: String(data.get('company')||''),
             location: String(data.get('location')||''),
             description: String(data.get('description')||''),
-            createdAt: Date.now(),
         };
-        await kv.set(`job:${id}`, JSON.stringify(job));
+        const { error } = await supabase.from('jobs').insert(payload);
+        if (error) {
+            // eslint-disable-next-line no-console
+            console.error('Create job failed', error);
+        }
         e.currentTarget.reset();
         await loadJobs();
     }
@@ -55,11 +73,8 @@ export default function AdminJobs() {
         // Optimistic update
         setJobs(prev => prev.filter(j => j.id !== id));
         try {
-            const ok = await kv.delete(`job:${id}`);
-            if (!ok) {
-                // Revert if failed
-                await loadJobs();
-            }
+            const { error } = await supabase.from('jobs').delete().eq('id', id);
+            if (error) throw error;
         } catch (_) {
             await loadJobs();
         }
@@ -68,10 +83,8 @@ export default function AdminJobs() {
     const clearAllJobs = async () => {
         setLoading(true);
         try {
-            const keys = (await kv.list('job:*')) as string[] | undefined;
-            if (keys && keys.length) {
-                await Promise.all(keys.map((k)=> kv.delete(k)));
-            }
+            const { error } = await supabase.from('jobs').delete().neq('id', '');
+            if (error) throw error;
         } finally {
             await loadJobs();
         }
@@ -80,7 +93,7 @@ export default function AdminJobs() {
     const seedDemoJobs = async () => {
         setLoading(true);
         try {
-            const demo: Job[] = [
+            const demo: Array<Omit<Job, 'createdAt'> & { createdAt?: number }> = [
                 {
                     id: crypto.randomUUID(),
                     title: 'Frontend Engineer (React + TypeScript)',
@@ -115,12 +128,16 @@ export default function AdminJobs() {
                 },
             ];
             // wipe existing
-            const keys = (await kv.list('job:*')) as string[] | undefined;
-            if (keys && keys.length) {
-                await Promise.all(keys.map((k)=> kv.delete(k)));
-            }
+            await supabase.from('jobs').delete().neq('id', '');
             // seed
-            await Promise.all(demo.map((j)=> kv.set(`job:${j.id}`, JSON.stringify(j))));
+            await supabase.from('jobs').insert(demo.map(j => ({
+                id: j.id,
+                title: j.title,
+                company: j.company,
+                location: j.location || null,
+                description: j.description,
+                // let DB set created_at default; we ignore createdAt here
+            })));
         } finally {
             await loadJobs();
         }
