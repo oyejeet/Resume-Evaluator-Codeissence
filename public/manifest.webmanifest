@@ -1,0 +1,19 @@
+{
+  "name": "Resumind",
+  "short_name": "Resumind",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#606beb",
+  "description": "Smart feedback for your dream job and job swipe apply.",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}
+
+
