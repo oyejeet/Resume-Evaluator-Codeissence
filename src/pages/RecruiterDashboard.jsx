@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BarChart3, Briefcase, Calendar, Clock, Eye, Filter, MessageCircle, Plus, Search, Star, Users } from "lucide-react";
+import { BarChart3, Briefcase, Calendar, Clock, Eye, FileText, Filter, MapPin, MessageCircle, Plus, Search, Star, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -230,15 +230,15 @@ const RecruiterDashboard = () => {
   };
   
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-theme-black via-theme-darker to-theme-black">
       <Header />
       
       <main className="flex-grow pt-24 pb-16">
         <div className="container mx-auto px-4">
           <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Recruiter Dashboard</h1>
-              <p className="text-muted-foreground">Welcome back, Tech Innovations Inc.</p>
+              <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-theme-green via-theme-cyan to-theme-purple bg-clip-text text-transparent">Recruiter Dashboard</h1>
+              <p className="text-theme-green/80">Welcome back, Tech Innovations Inc.</p>
             </div>
             
             <div className="flex gap-2 mt-4 md:mt-0">
@@ -254,20 +254,34 @@ const RecruiterDashboard = () => {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-1 sm:grid-cols-3 w-full bg-white glass mb-6">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="jobs">Job Listings</TabsTrigger>
-              <TabsTrigger value="candidates">Candidates</TabsTrigger>
+            <TabsList className="grid grid-cols-1 sm:grid-cols-3 w-full bg-theme-dark/80 backdrop-blur-sm border border-theme-green/20 shadow-lg mb-6">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-theme-green data-[state=active]:text-theme-black data-[state=active]:shadow-lg">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="jobs" className="data-[state=active]:bg-theme-green data-[state=active]:text-theme-black data-[state=active]:shadow-lg">
+                <Briefcase className="h-4 w-4 mr-2" />
+                Job Listings
+              </TabsTrigger>
+              <TabsTrigger value="candidates" className="data-[state=active]:bg-theme-green data-[state=active]:text-theme-black data-[state=active]:shadow-lg">
+                <Users className="h-4 w-4 mr-2" />
+                Candidates
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="overview" className="animate-fade-in space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="glass">
+                <Card className="bg-gradient-to-br from-theme-dark to-theme-black border border-theme-green/20 shadow-lg hover:shadow-theme-green/10 transition-all duration-300 group">
                   <CardHeader className="pb-2">
-                    <CardDescription>Job Views</CardDescription>
-                    <CardTitle className="text-2xl">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-theme-green/80">Job Views</CardDescription>
+                      <div className="p-2 bg-theme-green/10 rounded-lg">
+                        <Eye className="h-4 w-4 text-theme-green" />
+                      </div>
+                    </div>
+                    <CardTitle className="text-2xl text-theme-green">
                       {analytics.jobViews.total}
-                      <span className={`ml-2 text-sm font-normal ${analytics.jobViews.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      <span className={`ml-2 text-sm font-normal ${analytics.jobViews.change >= 0 ? 'text-theme-green' : 'text-theme-orange'}`}>
                         {analytics.jobViews.change >= 0 ? '+' : ''}{analytics.jobViews.change}%
                       </span>
                     </CardTitle>
@@ -277,7 +291,7 @@ const RecruiterDashboard = () => {
                       {analytics.jobViews.data.map((value, index) => (
                         <div
                           key={index}
-                          className="bg-primary/60 hover:bg-primary transition-colors rounded-sm w-full"
+                          className="bg-gradient-to-t from-theme-green to-theme-green-light hover:from-theme-green-light hover:to-theme-green transition-all duration-300 rounded-sm w-full group-hover:scale-105"
                           style={{ height: `${value}%` }}
                         ></div>
                       ))}
@@ -285,12 +299,17 @@ const RecruiterDashboard = () => {
                   </CardContent>
                 </Card>
                 
-                <Card className="glass">
+                <Card className="bg-gradient-to-br from-theme-dark to-theme-black border border-theme-cyan/20 shadow-lg hover:shadow-theme-cyan/10 transition-all duration-300 group">
                   <CardHeader className="pb-2">
-                    <CardDescription>Applications</CardDescription>
-                    <CardTitle className="text-2xl">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-theme-cyan/80">Applications</CardDescription>
+                      <div className="p-2 bg-theme-cyan/10 rounded-lg">
+                        <FileText className="h-4 w-4 text-theme-cyan" />
+                      </div>
+                    </div>
+                    <CardTitle className="text-2xl text-theme-cyan">
                       {analytics.applications.total}
-                      <span className={`ml-2 text-sm font-normal ${analytics.applications.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      <span className={`ml-2 text-sm font-normal ${analytics.applications.change >= 0 ? 'text-theme-cyan' : 'text-theme-orange'}`}>
                         {analytics.applications.change >= 0 ? '+' : ''}{analytics.applications.change}%
                       </span>
                     </CardTitle>
@@ -300,7 +319,7 @@ const RecruiterDashboard = () => {
                       {analytics.applications.data.map((value, index) => (
                         <div
                           key={index}
-                          className="bg-blue-400/60 hover:bg-blue-400 transition-colors rounded-sm w-full"
+                          className="bg-gradient-to-t from-theme-cyan to-theme-cyan-light hover:from-theme-cyan-light hover:to-theme-cyan transition-all duration-300 rounded-sm w-full group-hover:scale-105"
                           style={{ height: `${value * 5}%` }}
                         ></div>
                       ))}
@@ -308,12 +327,17 @@ const RecruiterDashboard = () => {
                   </CardContent>
                 </Card>
                 
-                <Card className="glass">
+                <Card className="bg-gradient-to-br from-theme-dark to-theme-black border border-theme-purple/20 shadow-lg hover:shadow-theme-purple/10 transition-all duration-300 group">
                   <CardHeader className="pb-2">
-                    <CardDescription>Interviews</CardDescription>
-                    <CardTitle className="text-2xl">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-theme-purple/80">Interviews</CardDescription>
+                      <div className="p-2 bg-theme-purple/10 rounded-lg">
+                        <Calendar className="h-4 w-4 text-theme-purple" />
+                      </div>
+                    </div>
+                    <CardTitle className="text-2xl text-theme-purple">
                       {analytics.interviews.total}
-                      <span className={`ml-2 text-sm font-normal ${analytics.interviews.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      <span className={`ml-2 text-sm font-normal ${analytics.interviews.change >= 0 ? 'text-theme-purple' : 'text-theme-orange'}`}>
                         {analytics.interviews.change >= 0 ? '+' : ''}{analytics.interviews.change}%
                       </span>
                     </CardTitle>
@@ -323,7 +347,7 @@ const RecruiterDashboard = () => {
                       {analytics.interviews.data.map((value, index) => (
                         <div
                           key={index}
-                          className="bg-green-400/60 hover:bg-green-400 transition-colors rounded-sm w-full"
+                          className="bg-gradient-to-t from-theme-purple to-theme-purple-light hover:from-theme-purple-light hover:to-theme-purple transition-all duration-300 rounded-sm w-full group-hover:scale-105"
                           style={{ height: `${value * 25}%` }}
                         ></div>
                       ))}
@@ -331,20 +355,25 @@ const RecruiterDashboard = () => {
                   </CardContent>
                 </Card>
                 
-                <Card className="glass">
+                <Card className="bg-gradient-to-br from-theme-dark to-theme-black border border-theme-orange/20 shadow-lg hover:shadow-theme-orange/10 transition-all duration-300 group">
                   <CardHeader className="pb-2">
-                    <CardDescription>Conversion Rate</CardDescription>
-                    <CardTitle className="text-2xl">
+                    <div className="flex items-center justify-between">
+                      <CardDescription className="text-theme-orange/80">Conversion Rate</CardDescription>
+                      <div className="p-2 bg-theme-orange/10 rounded-lg">
+                        <BarChart3 className="h-4 w-4 text-theme-orange" />
+                      </div>
+                    </div>
+                    <CardTitle className="text-2xl text-theme-orange">
                       {analytics.conversionRate.value}
-                      <span className={`ml-2 text-sm font-normal ${analytics.conversionRate.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      <span className={`ml-2 text-sm font-normal ${analytics.conversionRate.change >= 0 ? 'text-theme-orange' : 'text-theme-cyan'}`}>
                         {analytics.conversionRate.change >= 0 ? '+' : ''}{analytics.conversionRate.change}%
                       </span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-10 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-10 w-full bg-theme-black/50 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-gradient-to-r from-primary/80 to-primary rounded-full"
+                        className="h-full bg-gradient-to-r from-theme-orange to-theme-orange-light rounded-full transition-all duration-1000 ease-out"
                         style={{ width: analytics.conversionRate.value }}
                       ></div>
                     </div>
@@ -377,34 +406,48 @@ const RecruiterDashboard = () => {
                       </div>
                     ) : (
                       postedJobs.slice(0, 3).map((job) => (
-                        <div key={job.id} className="flex flex-col md:flex-row justify-between p-4 border border-border rounded-lg hover:bg-secondary/20 transition-colors">
-                          <div className="mb-4 md:mb-0">
-                            <h4 className="font-medium mb-1">{job.title}</h4>
-                            <div className="flex flex-wrap items-center text-sm text-muted-foreground gap-3">
-                              <span>{job.location}</span>
-                              <span>•</span>
-                              <span>{job.job_type || 'Full-time'}</span>
+                        <div key={job.id} className="bg-gradient-to-br from-theme-dark to-theme-black border border-theme-green/20 rounded-xl p-6 hover:border-theme-green/40 hover:shadow-theme-green/10 transition-all duration-300 group">
+                          <div className="flex flex-col md:flex-row justify-between items-start">
+                            <div className="mb-4 md:mb-0 flex-1">
+                              <h4 className="font-semibold text-theme-green mb-2 text-lg">{job.title}</h4>
+                              <div className="flex flex-wrap items-center text-sm text-theme-green/70 gap-3 mb-3">
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {job.location}
+                                </span>
+                                <span>•</span>
+                                <span className="px-2 py-1 bg-theme-green/10 text-theme-green rounded-full text-xs">
+                                  {job.job_type || 'Full-time'}
+                                </span>
+                              </div>
+                              <p className="text-theme-green/60 text-sm line-clamp-2">{job.description}</p>
                             </div>
-                          </div>
-                          
-                          <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center">
-                              <Users size={16} className="text-muted-foreground mr-1" />
-                              <span className="text-sm">{job.applications_count || 0} applicants</span>
+                            
+                            <div className="flex flex-col items-end gap-3">
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center bg-theme-cyan/10 px-3 py-1 rounded-full">
+                                  <Users size={14} className="text-theme-cyan mr-1" />
+                                  <span className="text-sm text-theme-cyan font-medium">{job.applications_count || 0} applicants</span>
+                                </div>
+                                <Badge className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                  job.status === 'active' 
+                                    ? 'bg-theme-green/20 text-theme-green border border-theme-green/30' 
+                                    : 'bg-theme-silver/20 text-theme-silver border border-theme-silver/30'
+                                }`}>
+                                  {job.status || 'Active'}
+                                </Badge>
+                              </div>
+                              <Button 
+                                className="bg-gradient-to-r from-theme-green to-theme-green-light text-theme-black hover:from-theme-green-light hover:to-theme-green transition-all duration-300 shadow-lg hover:shadow-theme-green/20"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedJob(job);
+                                  fetchJobApplicants(job.id);
+                                }}
+                              >
+                                View Details
+                              </Button>
                             </div>
-                            <Badge className={job.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                              {job.status || 'Active'}
-                            </Badge>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedJob(job);
-                                fetchJobApplicants(job.id);
-                              }}
-                            >
-                              View
-                            </Button>
                           </div>
                         </div>
                       ))
@@ -458,36 +501,43 @@ const RecruiterDashboard = () => {
                             : 'U';
                           
                           return (
-                            <div key={application.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-secondary/20 transition-colors">
-                              <div className="flex items-center">
-                                <Avatar className="h-10 w-10 mr-3">
-                                  <AvatarImage src={applicant?.avatar_url} alt={applicantName} />
-                                  <AvatarFallback>{initials}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <h4 className="font-medium">{applicantName}</h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    Applied on {new Date(application.created_at).toLocaleDateString()}
+                            <div key={application.id} className="bg-gradient-to-br from-theme-dark to-theme-black border border-theme-cyan/20 rounded-xl p-6 hover:border-theme-cyan/40 hover:shadow-theme-cyan/10 transition-all duration-300 group">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <div className="relative">
+                                    <Avatar className="h-12 w-12 mr-4 border-2 border-theme-cyan/20">
+                                      <AvatarImage src={applicant?.avatar_url} alt={applicantName} />
+                                      <AvatarFallback className="bg-theme-cyan/20 text-theme-cyan font-semibold">{initials}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-theme-green rounded-full border-2 border-theme-black"></div>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold text-theme-cyan text-lg">{applicantName}</h4>
+                                    <p className="text-sm text-theme-cyan/70 mb-1">
+                                      Applied on {new Date(application.created_at).toLocaleDateString()}
+                                    </p>
                                     {applicant?.email && (
-                                      <span className="block text-xs text-muted-foreground">
+                                      <p className="text-xs text-theme-cyan/60">
                                         {applicant.email}
-                                      </span>
+                                      </p>
                                     )}
-                                  </p>
+                                  </div>
                                 </div>
-                              </div>
                               
-                              <div className="flex items-center gap-2">
-                                <Badge className={
-                                  application.status === 'Pending' ? 'bg-blue-100 text-blue-800' : 
-                                  application.status === 'Reviewed' ? 'bg-purple-100 text-purple-800' : 
-                                  application.status === 'Accepted' ? 'bg-green-100 text-green-800' :
-                                  application.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                  'bg-amber-100 text-amber-800'
-                                }>
-                                  {application.status}
-                                </Badge>
-                                <Button variant="outline" size="sm">View Profile</Button>
+                                <div className="flex items-center gap-3">
+                                  <Badge className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    application.status === 'Pending' ? 'bg-theme-cyan/20 text-theme-cyan border border-theme-cyan/30' : 
+                                    application.status === 'Reviewed' ? 'bg-theme-purple/20 text-theme-purple border border-theme-purple/30' : 
+                                    application.status === 'Accepted' ? 'bg-theme-green/20 text-theme-green border border-theme-green/30' :
+                                    application.status === 'Rejected' ? 'bg-theme-orange/20 text-theme-orange border border-theme-orange/30' :
+                                    'bg-theme-silver/20 text-theme-silver border border-theme-silver/30'
+                                  }`}>
+                                    {application.status}
+                                  </Badge>
+                                  <Button className="bg-gradient-to-r from-theme-cyan to-theme-cyan-light text-theme-black hover:from-theme-cyan-light hover:to-theme-cyan transition-all duration-300 shadow-lg hover:shadow-theme-cyan/20" size="sm">
+                                    View Profile
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           );
@@ -496,27 +546,34 @@ const RecruiterDashboard = () => {
                     ) : (
                       // Show default candidates
                       candidates.slice(0, 3).map((candidate) => (
-                        <div key={candidate.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-secondary/20 transition-colors">
-                          <div className="flex items-center">
-                            <Avatar className="h-10 w-10 mr-3">
-                              <AvatarImage src={candidate.avatar} alt={candidate.name} />
-                              <AvatarFallback>{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h4 className="font-medium">{candidate.name}</h4>
-                              <p className="text-sm text-muted-foreground">Applied for {candidate.appliedFor}</p>
+                        <div key={candidate.id} className="bg-gradient-to-br from-theme-dark to-theme-black border border-theme-purple/20 rounded-xl p-6 hover:border-theme-purple/40 hover:shadow-theme-purple/10 transition-all duration-300 group">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="relative">
+                                <Avatar className="h-12 w-12 mr-4 border-2 border-theme-purple/20">
+                                  <AvatarImage src={candidate.avatar} alt={candidate.name} />
+                                  <AvatarFallback className="bg-theme-purple/20 text-theme-purple font-semibold">{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                </Avatar>
+                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-theme-green rounded-full border-2 border-theme-black"></div>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-theme-purple text-lg">{candidate.name}</h4>
+                                <p className="text-sm text-theme-purple/70">Applied for {candidate.appliedFor}</p>
+                              </div>
                             </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Badge className={
-                              candidate.status === 'New' ? 'bg-blue-100 text-blue-800' : 
-                              candidate.status === 'Reviewed' ? 'bg-purple-100 text-purple-800' : 
-                              'bg-amber-100 text-amber-800'
-                            }>
-                              {candidate.status}
-                            </Badge>
-                            <Button variant="outline" size="sm">View</Button>
+                            
+                            <div className="flex items-center gap-3">
+                              <Badge className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                candidate.status === 'New' ? 'bg-theme-cyan/20 text-theme-cyan border border-theme-cyan/30' : 
+                                candidate.status === 'Reviewed' ? 'bg-theme-purple/20 text-theme-purple border border-theme-purple/30' : 
+                                'bg-theme-orange/20 text-theme-orange border border-theme-orange/30'
+                              }`}>
+                                {candidate.status}
+                              </Badge>
+                              <Button className="bg-gradient-to-r from-theme-purple to-theme-purple-light text-theme-black hover:from-theme-purple-light hover:to-theme-purple transition-all duration-300 shadow-lg hover:shadow-theme-purple/20" size="sm">
+                                View Profile
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))

@@ -103,16 +103,17 @@ const Index = () => {
       
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-r from-blue-50 to-indigo-50 pt-32 pb-20">
+        <section className="relative bg-gradient-to-br from-theme-black via-theme-darker to-theme-black pt-32 pb-20">
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-200 rounded-full opacity-20"></div>
-            <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-200 rounded-full opacity-20"></div>
+            <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-theme-green to-theme-purple rounded-full opacity-15"></div>
+            <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-theme-cyan to-theme-green rounded-full opacity-15"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-theme-orange to-theme-purple rounded-full opacity-10"></div>
           </div>
           
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-3xl mx-auto text-center mb-12 md:mb-16">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-slide-up">
-                Connecting Talent <span className="text-primary">Without</span> Financial Barriers
+                Connecting Talent <span className="bg-gradient-to-r from-theme-green via-theme-cyan to-theme-purple bg-clip-text text-transparent">Without</span> Financial Barriers
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground mb-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
                 A free platform that bridges the gap between job seekers and recruiters, 
@@ -120,7 +121,7 @@ const Index = () => {
               </p>
             </div>
             
-            <div className="bg-white shadow-md rounded-xl p-4 max-w-4xl mx-auto glass animate-scale-in">
+            <div className="bg-gradient-to-br from-theme-dark via-theme-black to-theme-darker shadow-md rounded-xl p-4 max-w-4xl mx-auto glass animate-scale-in border border-theme-green/30 shadow-theme-green/20">
               <form className="flex flex-col md:flex-row gap-3" onSubmit={handleSearch}>
                 <div className="flex-grow">
                   <div className="relative">
@@ -155,7 +156,7 @@ const Index = () => {
         </section>
         
         {/* Featured Jobs Section */}
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-theme-black">
           <div className="container mx-auto px-4">
             <div className="flex justify-between items-center mb-10">
               <h2 className="text-2xl md:text-3xl font-semibold">Featured Jobs</h2>
@@ -191,7 +192,7 @@ const Index = () => {
         </section>
         
         {/* Features Section */}
-        <section className="py-16 bg-gradient-to-r from-gray-50 to-gray-100">
+        <section className="py-16 bg-gradient-to-r from-theme-darker to-theme-black">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-semibold mb-4">
@@ -344,8 +345,8 @@ const Index = () => {
         </section>
         
         {/* Call to Action Section */}
-        <section className="py-16 bg-primary">
-          <div className="container mx-auto px-4 text-center text-white">
+        <section className="py-16 bg-gradient-to-r from-theme-green via-theme-cyan to-theme-purple">
+          <div className="container mx-auto px-4 text-center text-theme-black">
             <h2 className="text-3xl font-bold mb-4">Ready to find your next opportunity?</h2>
             <p className="max-w-2xl mx-auto mb-8">
               Join CareerCraft today and take the next step in your career. 

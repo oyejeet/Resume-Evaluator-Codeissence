@@ -3,7 +3,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useInterviews } from '@/hooks/use-interviews';
+import { useInterviews } from '@/hooks/useInterviews';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, startOfDay, isSameDay } from 'date-fns';
 

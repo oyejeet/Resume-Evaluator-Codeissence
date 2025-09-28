@@ -1,32 +1,45 @@
-// server.js
+// backend/server.js
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
-import jobPostRoutes from './routes/jobPostRoutes.js'; // Ensure this path is correct
+import { TwitterApi } from 'twitter-api-v2';
 
 const app = express();
-const PORT = process.env.PORT || 5003;
+const PORT = 4000;
 
-// Rest of the code remains the same...
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-mongoose.connect('mongodb://localhost:27017/ChaosCoders', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+// --- Twitter client using hardcoded keys (OAuth 1.0a User Context) ---
+const twitterClient = new TwitterApi({
+  appKey: 'YnFtd6vYi2eS8Vwf5jgqbSLzJ',        // Replace with your Consumer API Key
+  appSecret: 'i6WnLS1tEccVEFwiKV2lZOO3N81gkBuXjVPfq4AjS697Re47Vd',  // Replace with your Consumer API Secret
+  accessToken: '1968356119220293633-G815W4Ugz2z62pHscwOl9oDtaZJXuZ',   // Replace with your Access Token
+  accessSecret: 'xu7ftMW2YpGMAbfdgs8sxlxBevtw3gd90GUiWR0JPsblQ'  // Replace with your Access Token Secret
 });
 
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => {
-  console.log('Connected to MongoDB');
+// Get the v2 client
+const rwClient = twitterClient.readWrite;
+
+// --- Test route ---
+app.get('/test-connection', (req, res) => {
+  res.json({ success: true, message: 'Backend is running!' });
 });
 
-// Routes
-app.use('/api/jobposts', jobPostRoutes);
+// --- Post job to X (Twitter) ---
+app.post('/post-job', async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    // Post tweet
+    const tweet = await rwClient.v2.tweet(text);
+
+    res.json({ success: true, data: tweet });
+  } catch (err) {
+    console.error('Error posting tweet:', err);
+    res.json({ success: false, error: err.message });
+  }
+});
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Backend running on http://localhost:${PORT}`);
 });

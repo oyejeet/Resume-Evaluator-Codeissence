@@ -28,13 +28,13 @@ const Header = () => {
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-transparent"
+        isScrolled ? "bg-theme-black/90 backdrop-blur-md shadow-sm border-b border-theme-green/20" : "bg-transparent"
       }`}
     >
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <span className="text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500">
-            CareerCraft
+          <span className="text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-theme-green via-theme-cyan to-theme-purple">
+            JobSathi
           </span>
         </Link>
 
@@ -123,7 +123,7 @@ const Header = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white/95 backdrop-blur-md animate-fade-in">
+        <div className="md:hidden bg-theme-black/95 backdrop-blur-md animate-fade-in border-t border-theme-green/20">
           <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
             <Link 
               to="/jobs" 

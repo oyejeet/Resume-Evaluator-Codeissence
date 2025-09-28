@@ -61,6 +61,40 @@ module.exports = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Enhanced black and green theme with complementary colors
+        'theme-black': '#0a0a0a',
+        'theme-dark': '#1a1a1a',
+        'theme-darker': '#0f0f0f',
+        'theme-green': '#00ff88',
+        'theme-green-dark': '#00cc6a',
+        'theme-green-light': '#33ff99',
+        'theme-green-muted': '#00ff8840',
+        
+        // Complementary colors
+        'theme-purple': '#8b5cf6',
+        'theme-purple-dark': '#7c3aed',
+        'theme-purple-light': '#a78bfa',
+        'theme-purple-muted': '#8b5cf640',
+        
+        'theme-cyan': '#06b6d4',
+        'theme-cyan-dark': '#0891b2',
+        'theme-cyan-light': '#22d3ee',
+        'theme-cyan-muted': '#06b6d440',
+        
+        'theme-orange': '#f97316',
+        'theme-orange-dark': '#ea580c',
+        'theme-orange-light': '#fb923c',
+        'theme-orange-muted': '#f9731640',
+        
+        'theme-silver': '#e2e8f0',
+        'theme-silver-dark': '#cbd5e1',
+        'theme-silver-light': '#f1f5f9',
+        'theme-silver-muted': '#e2e8f040',
+        
+        // Gradient combinations
+        'theme-gradient-primary': 'linear-gradient(135deg, #00ff88 0%, #8b5cf6 100%)',
+        'theme-gradient-secondary': 'linear-gradient(135deg, #06b6d4 0%, #00ff88 100%)',
+        'theme-gradient-accent': 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -16,32 +16,32 @@ const JobCard = ({
   onViewJob,
   actionButton,
 }) => {
-  // Color mapping for job types
+  // Color mapping for job types with complementary colors
   const getTypeColor = (type) => {
     switch (type) {
       case "Full-time":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-theme-green/20 text-theme-green border-theme-green/40";
       case "Part-time":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-theme-cyan/20 text-theme-cyan border-theme-cyan/40";
       case "Contract":
-        return "bg-purple-100 text-purple-800 border-purple-200";
+        return "bg-theme-purple/20 text-theme-purple border-theme-purple/40";
       case "Remote":
-        return "bg-indigo-100 text-indigo-800 border-indigo-200";
+        return "bg-theme-orange/20 text-theme-orange border-theme-orange/40";
       case "Hybrid":
-        return "bg-pink-100 text-pink-800 border-pink-200";
+        return "bg-theme-green/15 text-theme-green-light border-theme-green/35";
       case "Internship":
-        return "bg-amber-100 text-amber-800 border-amber-200";
+        return "bg-theme-cyan/15 text-theme-cyan-light border-theme-cyan/35";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-theme-dark text-theme-green border-theme-green/20";
     }
   };
 
   return (
-    <div className="group rounded-xl p-6 bg-gradient-to-br from-white to-blue-50 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+    <div className="group rounded-xl p-6 bg-gradient-to-br from-theme-dark via-theme-black to-theme-darker shadow-lg border border-theme-green/20 hover:shadow-xl hover:border-theme-green/40 hover:shadow-theme-green/10 transition-all duration-300">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
         <div>
-          <h3 className="text-xl font-bold text-gray-800 mb-1">{title}</h3>
-          <div className="flex flex-wrap items-center text-sm text-gray-600 gap-3 mb-3">
+          <h3 className="text-xl font-bold text-theme-green mb-1">{title}</h3>
+          <div className="flex flex-wrap items-center text-sm text-theme-green/80 gap-3 mb-3">
             <span className="flex items-center gap-1">
               <Building size={14} /> {company}
             </span>
@@ -59,11 +59,11 @@ const JobCard = ({
               </Badge>
             )}
             {salary && salary !== 'Salary not specified' && salary !== '' ? (
-              <Badge variant="outline" className="font-semibold bg-gray-100 border-gray-200">
+              <Badge variant="outline" className="font-semibold bg-theme-green/10 text-theme-green border-theme-green/30">
                 {typeof salary === 'number' || !isNaN(Number(salary)) ? `₹${salary}` : salary}
               </Badge>
             ) : (
-              <Badge variant="outline" className="font-semibold bg-gray-100 border-gray-200">
+              <Badge variant="outline" className="font-semibold bg-theme-green/10 text-theme-green border-theme-green/30">
                 Salary not specified
               </Badge>
             )}
@@ -76,7 +76,7 @@ const JobCard = ({
             <Button
               variant="outline"
               size="sm"
-              className="bg-blue-500 text-white hover:bg-blue-600 transition-all duration-300 transform group-hover:scale-105"
+              className="bg-theme-green text-theme-black hover:bg-theme-green-light transition-all duration-300 transform group-hover:scale-105 border-theme-green"
               onClick={onViewJob}
             >
               View Job
@@ -84,7 +84,7 @@ const JobCard = ({
           )}
         </div>
       </div>
-      <p className="text-sm text-gray-700 line-clamp-2">{description}</p>
+      <p className="text-sm text-theme-green/70 line-clamp-2">{description}</p>
     </div>
   );
 };
